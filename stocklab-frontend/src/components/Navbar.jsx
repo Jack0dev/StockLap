@@ -40,6 +40,7 @@ export default function Navbar() {
         {/* Nav Links */}
         <div className="navbar-links">
           <Link to="/dashboard" className="nav-link">Tổng quan</Link>
+          <Link to="/stocks" className="nav-link">Bảng giá</Link>
         </div>
 
         {/* User Menu */}
