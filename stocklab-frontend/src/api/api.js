@@ -47,4 +47,17 @@ export const userAPI = {
   changePassword: (data) => api.put('/users/change-password', data),
 };
 
+// ===== Stock APIs =====
+export const stockAPI = {
+  getAll: (page = 0, size = 20, sort = 'ticker', exchange = '') => {
+    const params = { page, size, sort };
+    if (exchange) params.exchange = exchange;
+    return api.get('/stocks', { params });
+  },
+  getByTicker: (ticker) => api.get(`/stocks/${ticker}`),
+  search: (keyword) => api.get('/stocks/search', { params: { keyword } }),
+  getPriceHistory: (ticker, range = '1M') =>
+    api.get(`/stocks/${ticker}/history`, { params: { range } }),
+};
+
 export default api;

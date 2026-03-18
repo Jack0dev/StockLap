@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './DashboardPage.css';
 
@@ -12,8 +13,8 @@ export default function DashboardPage() {
       </div>
 
       <div className="dashboard-grid">
-        {/* Placeholder cards cho các Phase tiếp theo */}
-        <div className="card dashboard-card">
+        {/* Bảng giá — Active */}
+        <Link to="/stocks" className="card dashboard-card" style={{ textDecoration: 'none', color: 'inherit' }}>
           <div className="card-icon card-icon-blue">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
@@ -21,9 +22,9 @@ export default function DashboardPage() {
           </div>
           <div className="card-info">
             <span className="card-label">Bảng giá</span>
-            <span className="card-value text-muted">Phase 3</span>
+            <span className="card-value text-success" style={{ fontSize: '0.75rem' }}>✓ Khả dụng</span>
           </div>
-        </div>
+        </Link>
 
         <div className="card dashboard-card">
           <div className="card-icon card-icon-green">
@@ -67,7 +68,7 @@ export default function DashboardPage() {
       <div className="dashboard-info">
         <div className="card">
           <h3>🚀 Hệ thống đang phát triển</h3>
-          <p>Các tính năng giao dịch, bảng giá, và quản lý danh mục sẽ được cập nhật trong các phiên bản tiếp theo.</p>
+          <p>Các tính năng giao dịch, và quản lý danh mục sẽ được cập nhật trong các phiên bản tiếp theo.</p>
         </div>
       </div>
     </div>

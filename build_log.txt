@@ -1,0 +1,42 @@
+﻿[INFO] Scanning for projects...
+[INFO] 
+[INFO] -------------------< com.stocklab:stocklab-backend >--------------------
+[INFO] Building stocklab-backend 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.3.2:clean (default-clean) @ stocklab-backend ---
+[INFO] Deleting D:\StockLap\stocklab-backend\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ stocklab-backend ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ stocklab-backend ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 27 source files with javac [debug release 21] to target\classes
+cmd : WARNING: A terminally deprecated method 
+in sun.misc.Unsafe has been called
+At line:1 char:226
++ ... e($mvnPath).ShortPath; cmd /c 
+"$shortPath clean compile" 2>&1 | Out-F ...
++                            
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (W 
+   ARNING: A term...has been called:String) [  
+  ], RemoteException
+    + FullyQualifiedErrorId : NativeCommandErr 
+   or
+ 
+WARNING: sun.misc.Unsafe::objectFieldOffset 
+has been called by lombok.permit.Permit
+WARNING: Please consider reporting this to the 
+maintainers of class lombok.permit.Permit
+WARNING: sun.misc.Unsafe::objectFieldOffset 
+will be removed in a future release
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  6.109 s
+[INFO] Finished at: 2026-03-18T22:29:26+07:00
+[INFO] ------------------------------------------------------------------------

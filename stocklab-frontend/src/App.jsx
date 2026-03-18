@@ -6,6 +6,8 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import ProfilePage from './pages/ProfilePage'
+import StockListPage from './pages/StockListPage'
+import StockDetailPage from './pages/StockDetailPage'
 
 // Layout chính (có Navbar) cho các trang sau khi đăng nhập
 function AppLayout() {
@@ -44,6 +46,8 @@ function App() {
       }>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/stocks" element={<StockListPage />} />
+        <Route path="/stocks/:ticker" element={<StockDetailPage />} />
       </Route>
 
       {/* Default redirect */}
