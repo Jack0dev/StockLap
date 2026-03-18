@@ -1,0 +1,149 @@
+package com.stocklab.config;
+
+import com.stocklab.model.Stock;
+import com.stocklab.model.StockPriceHistory;
+import com.stocklab.repository.StockPriceHistoryRepository;
+import com.stocklab.repository.StockRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class DataSeeder implements CommandLineRunner {
+
+    private final StockRepository stockRepository;
+    private final StockPriceHistoryRepository priceHistoryRepository;
+
+    @Override
+    @Transactional
+    public void run(String... args) {
+        if (stockRepository.count() > 0) {
+            log.info("📊 Database đã có dữ liệu cổ phiếu, bỏ qua seeding.");
+            return;
+        }
+
+        log.info("🌱 Bắt đầu seed dữ liệu cổ phiếu...");
+
+        List<StockSeedData> seedData = List.of(
+                new StockSeedData("VNM", "Vinamilk", "HOSE", 78000),
+                new StockSeedData("VIC", "Vingroup", "HOSE", 42000),
+                new StockSeedData("FPT", "FPT Corporation", "HOSE", 125000),
+                new StockSeedData("HPG", "Hòa Phát Group", "HOSE", 26000),
+                new StockSeedData("MWG", "Thế Giới Di Động", "HOSE", 52000),
+                new StockSeedData("VCB", "Vietcombank", "HOSE", 92000),
+                new StockSeedData("BID", "BIDV", "HOSE", 47000),
+                new StockSeedData("CTG", "VietinBank", "HOSE", 35000),
+                new StockSeedData("TCB", "Techcombank", "HOSE", 38000),
+                new StockSeedData("MBB", "MB Bank", "HOSE", 24000),
+                new StockSeedData("VPB", "VPBank", "HOSE", 19000),
+                new StockSeedData("VHM", "Vinhomes", "HOSE", 40000),
+                new StockSeedData("MSN", "Masan Group", "HOSE", 82000),
+                new StockSeedData("GAS", "PV Gas", "HOSE", 75000),
+                new StockSeedData("VRE", "Vincom Retail", "HOSE", 23000),
+                new StockSeedData("SSI", "SSI Securities", "HOSE", 32000),
+                new StockSeedData("VND", "VNDirect", "HOSE", 18000),
+                new StockSeedData("ACB", "ACB Bank", "HNX", 25000),
+                new StockSeedData("SHB", "SHB Bank", "HNX", 12000),
+                new StockSeedData("PVS", "PV Shipyard", "HNX", 28000)
+        );
+
+        Random random = new Random(42); // Fixed seed for reproducible data
+
+        for (StockSeedData data : seedData) {
+            Stock stock = createStock(data, random);
+            stockRepository.save(stock);
+
+            List<StockPriceHistory> history = generatePriceHistory(stock, data.basePrice, random);
+            priceHistoryRepository.saveAll(history);
+
+            log.info("  ✅ {} — {} ({}đ, {} ngày lịch sử)",
+                    stock.getTicker(), stock.getCompanyName(),
+                    stock.getCurrentPrice(), history.size());
+        }
+
+        log.info("🎉 Seed hoàn tất! Đã tạo {} cổ phiếu.", seedData.size());
+    }
+
+    private Stock createStock(StockSeedData data, Random random) {
+        double basePrice = data.basePrice;
+
+        // Simulate today's trading
+        double openPrice = basePrice * (1 + (random.nextDouble() - 0.5) * 0.02);
+        double currentPrice = openPrice * (1 + (random.nextDouble() - 0.5) * 0.04);
+        double highPrice = Math.max(openPrice, currentPrice) * (1 + random.nextDouble() * 0.015);
+        double lowPrice = Math.min(openPrice, currentPrice) * (1 - random.nextDouble() * 0.015);
+        double referencePrice = basePrice;
+        double change = currentPrice - referencePrice;
+        double changePercent = (change / referencePrice) * 100;
+        long volume = (long) (random.nextDouble() * 5_000_000 + 500_000);
+
+        return Stock.builder()
+                .ticker(data.ticker)
+                .companyName(data.companyName)
+                .exchange(data.exchange)
+                .currentPrice(toBigDecimal(currentPrice))
+                .openPrice(toBigDecimal(openPrice))
+                .highPrice(toBigDecimal(highPrice))
+                .lowPrice(toBigDecimal(lowPrice))
+                .referencePrice(toBigDecimal(referencePrice))
+                .volume(volume)
+                .change(toBigDecimal(change))
+                .changePercent(Math.round(changePercent * 100.0) / 100.0)
+                .build();
+    }
+
+    private List<StockPriceHistory> generatePriceHistory(Stock stock, double basePrice, Random random) {
+        List<StockPriceHistory> history = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+        double price = basePrice * 0.85; // Start 15% lower 90 days ago
+
+        for (int i = 90; i >= 1; i--) {
+            LocalDate date = today.minusDays(i);
+
+            // Skip weekends
+            if (date.getDayOfWeek().getValue() >= 6) continue;
+
+            // Random daily variation (-3% to +3%)
+            double dailyChange = (random.nextDouble() - 0.48) * 0.06; // Slight upward bias
+            price = price * (1 + dailyChange);
+
+            // Ensure price stays reasonable (±40% from base)
+            price = Math.max(basePrice * 0.6, Math.min(basePrice * 1.4, price));
+
+            double open = price * (1 + (random.nextDouble() - 0.5) * 0.02);
+            double close = price;
+            double high = Math.max(open, close) * (1 + random.nextDouble() * 0.015);
+            double low = Math.min(open, close) * (1 - random.nextDouble() * 0.015);
+            long vol = (long) (random.nextDouble() * 3_000_000 + 200_000);
+
+            history.add(StockPriceHistory.builder()
+                    .stock(stock)
+                    .openPrice(toBigDecimal(open))
+                    .highPrice(toBigDecimal(high))
+                    .lowPrice(toBigDecimal(low))
+                    .closePrice(toBigDecimal(close))
+                    .volume(vol)
+                    .tradingDate(date)
+                    .build());
+        }
+
+        return history;
+    }
+
+    private BigDecimal toBigDecimal(double value) {
+        return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private record StockSeedData(String ticker, String companyName, String exchange, double basePrice) {}
+}
