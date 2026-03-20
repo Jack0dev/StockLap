@@ -1,0 +1,165 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { tradeAPI, userAPI } from '../api/api';
+import './PortfolioPage.css';
+
+export default function PortfolioPage() {
+  const navigate = useNavigate();
+  const [portfolio, setPortfolio] = useState([]);
+  const [balance, setBalance] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [portfolioRes, profileRes] = await Promise.all([
+        tradeAPI.getPortfolio(),
+        userAPI.getProfile(),
+      ]);
+      if (portfolioRes.data.success) setPortfolio(portfolioRes.data.data);
+      if (profileRes.data.success) setBalance(profileRes.data.data.balance);
+    } catch (err) {
+      console.error('Lỗi tải dữ liệu:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const totalValue = portfolio.reduce((sum, p) => sum + Number(p.totalValue), 0);
+  const totalInvested = portfolio.reduce((sum, p) => sum + (Number(p.avgBuyPrice) * p.quantity), 0);
+  const totalPnL = portfolio.reduce((sum, p) => sum + Number(p.profitLoss), 0);
+  const totalPnLPercent = totalInvested > 0 ? ((totalPnL / totalInvested) * 100) : 0;
+  const totalAssets = totalValue + Number(balance);
+
+  const formatPrice = (price) => {
+    if (!price && price !== 0) return '0';
+    return Number(price).toLocaleString('vi-VN');
+  };
+
+  const getTickerColor = (ticker) => {
+    const colors = ['#2962ff', '#00c853', '#ff6d00', '#aa00ff', '#d50000', '#00bfa5', '#6200ea', '#c51162'];
+    let hash = 0;
+    for (let i = 0; i < ticker.length; i++) hash = ticker.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  if (loading) {
+    return (
+      <div className="portfolio-page">
+        <div className="pf-loading">
+          <div className="spinner"></div>
+          <span>Đang tải danh mục đầu tư...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="portfolio-page fade-in">
+      <div className="pf-header">
+        <h2>💼 Danh mục đầu tư</h2>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="pf-summary-grid">
+        <div className="pf-summary-card">
+          <div className="pf-summary-label">Tổng tài sản</div>
+          <div className="pf-summary-value">{formatPrice(totalAssets)} VND</div>
+        </div>
+        <div className="pf-summary-card">
+          <div className="pf-summary-label">Giá trị CP</div>
+          <div className="pf-summary-value accent">{formatPrice(totalValue)} VND</div>
+        </div>
+        <div className="pf-summary-card">
+          <div className="pf-summary-label">Tiền mặt</div>
+          <div className="pf-summary-value">{formatPrice(balance)} VND</div>
+        </div>
+        <div className="pf-summary-card">
+          <div className="pf-summary-label">Tổng lãi/lỗ</div>
+          <div className={`pf-summary-value ${totalPnL >= 0 ? 'up' : 'down'}`}>
+            {totalPnL >= 0 ? '+' : ''}{formatPrice(totalPnL)} VND
+            <span className="pf-pnl-pct">({totalPnLPercent >= 0 ? '+' : ''}{totalPnLPercent.toFixed(2)}%)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Portfolio Table */}
+      {portfolio.length === 0 ? (
+        <div className="pf-empty">
+          <span style={{ fontSize: '2rem' }}>📦</span>
+          <span>Chưa có cổ phiếu nào trong danh mục</span>
+          <button className="btn-go-trade" onClick={() => navigate('/trading')}>
+            Bắt đầu giao dịch →
+          </button>
+        </div>
+      ) : (
+        <div className="pf-table-wrapper">
+          <table className="pf-table">
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Mã CP</th>
+                <th style={{ textAlign: 'left' }}>Tên công ty</th>
+                <th>Sàn</th>
+                <th>Số lượng</th>
+                <th>Giá TB mua</th>
+                <th>Giá hiện tại</th>
+                <th>Giá trị</th>
+                <th>Lãi/Lỗ</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {portfolio.map(item => (
+                <tr key={item.ticker}>
+                  <td style={{ textAlign: 'left' }}>
+                    <div className="pf-ticker-cell">
+                      <div
+                        className="pf-ticker-icon"
+                        style={{ background: getTickerColor(item.ticker) }}
+                      >
+                        {item.ticker.substring(0, 2)}
+                      </div>
+                      <span className="pf-ticker-symbol">{item.ticker}</span>
+                    </div>
+                  </td>
+                  <td style={{ textAlign: 'left' }}>
+                    <span className="pf-company">{item.companyName}</span>
+                  </td>
+                  <td>
+                    <span className={`exchange-badge exchange-${item.exchange?.toLowerCase()}`}>
+                      {item.exchange}
+                    </span>
+                  </td>
+                  <td className="pf-num">{item.quantity.toLocaleString('vi-VN')}</td>
+                  <td className="pf-num">{formatPrice(item.avgBuyPrice)}</td>
+                  <td className="pf-num">{formatPrice(item.currentPrice)}</td>
+                  <td className="pf-num pf-bold">{formatPrice(item.totalValue)}</td>
+                  <td>
+                    <div className={`pf-pnl-cell ${item.profitLoss >= 0 ? 'up' : 'down'}`}>
+                      <span>{item.profitLoss >= 0 ? '+' : ''}{formatPrice(item.profitLoss)}</span>
+                      <span className="pf-pnl-percent">
+                        ({item.profitLossPercent >= 0 ? '+' : ''}{item.profitLossPercent?.toFixed(2)}%)
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <button
+                      className="pf-sell-btn"
+                      onClick={() => navigate('/trading')}
+                    >
+                      Bán
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}

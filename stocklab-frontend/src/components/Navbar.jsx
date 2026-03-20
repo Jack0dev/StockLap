@@ -41,6 +41,9 @@ export default function Navbar() {
         <div className="navbar-links">
           <Link to="/dashboard" className="nav-link">Tổng quan</Link>
           <Link to="/stocks" className="nav-link">Bảng giá</Link>
+          <Link to="/trading" className="nav-link">Giao dịch</Link>
+          <Link to="/portfolio" className="nav-link">Danh mục</Link>
+          <Link to="/transactions" className="nav-link">Lịch sử GD</Link>
         </div>
 
         {/* User Menu */}

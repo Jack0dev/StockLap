@@ -60,4 +60,16 @@ export const stockAPI = {
     api.get(`/stocks/${ticker}/history`, { params: { range } }),
 };
 
+// ===== Trade APIs =====
+export const tradeAPI = {
+  buy: (data) => api.post('/trade/buy', data),
+  sell: (data) => api.post('/trade/sell', data),
+  getTransactions: (page = 0, size = 20, type = '') => {
+    const params = { page, size };
+    if (type) params.type = type;
+    return api.get('/trade/transactions', { params });
+  },
+  getPortfolio: () => api.get('/trade/portfolio'),
+};
+
 export default api;
