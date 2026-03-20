@@ -26,7 +26,7 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        <div className="card dashboard-card">
+        <Link to="/trading" className="card dashboard-card" style={{ textDecoration: 'none', color: 'inherit' }}>
           <div className="card-icon card-icon-green">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
@@ -36,11 +36,11 @@ export default function DashboardPage() {
           </div>
           <div className="card-info">
             <span className="card-label">Giao dịch</span>
-            <span className="card-value text-muted">Phase 4</span>
+            <span className="card-value text-success" style={{ fontSize: '0.75rem' }}>✓ Khả dụng</span>
           </div>
-        </div>
+        </Link>
 
-        <div className="card dashboard-card">
+        <Link to="/portfolio" className="card dashboard-card" style={{ textDecoration: 'none', color: 'inherit' }}>
           <div className="card-icon card-icon-purple">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"></path>
@@ -48,9 +48,9 @@ export default function DashboardPage() {
           </div>
           <div className="card-info">
             <span className="card-label">Danh mục</span>
-            <span className="card-value text-muted">Phase 5</span>
+            <span className="card-value text-success" style={{ fontSize: '0.75rem' }}>✓ Khả dụng</span>
           </div>
-        </div>
+        </Link>
 
         <div className="card dashboard-card">
           <div className="card-icon card-icon-gold">
