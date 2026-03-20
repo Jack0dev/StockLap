@@ -1,11 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { tradeAPI, userAPI } from '../api/api';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Doughnut } from 'react-chartjs-2';
 import './PortfolioPage.css';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function PortfolioPage() {
   const navigate = useNavigate();
   const [portfolio, setPortfolio] = useState([]);
+  const [summary, setSummary] = useState(null);
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -16,12 +21,14 @@ export default function PortfolioPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [portfolioRes, profileRes] = await Promise.all([
+      const [portfolioRes, profileRes, summaryRes] = await Promise.all([
         tradeAPI.getPortfolio(),
         userAPI.getProfile(),
+        tradeAPI.getPortfolioSummary(),
       ]);
       if (portfolioRes.data.success) setPortfolio(portfolioRes.data.data);
       if (profileRes.data.success) setBalance(profileRes.data.data.balance);
+      if (summaryRes.data.success) setSummary(summaryRes.data.data);
     } catch (err) {
       console.error('Lỗi tải dữ liệu:', err);
     } finally {
@@ -45,6 +52,40 @@ export default function PortfolioPage() {
     let hash = 0;
     for (let i = 0; i < ticker.length; i++) hash = ticker.charCodeAt(i) + ((hash << 5) - hash);
     return colors[Math.abs(hash) % colors.length];
+  };
+
+  // Donut chart data
+  const chartData = summary && summary.allocations?.length > 0 ? {
+    labels: summary.allocations.map(a => a.ticker),
+    datasets: [{
+      data: summary.allocations.map(a => Number(a.value)),
+      backgroundColor: summary.allocations.map(a => a.color),
+      borderColor: 'rgba(0,0,0,0.3)',
+      borderWidth: 2,
+      hoverOffset: 8,
+    }],
+  } : null;
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1e2235',
+        titleFont: { family: "'Inter', sans-serif", size: 13 },
+        bodyFont: { family: "'Inter', sans-serif", size: 12 },
+        padding: 12,
+        cornerRadius: 8,
+        callbacks: {
+          label: (ctx) => {
+            const alloc = summary.allocations[ctx.dataIndex];
+            return `${alloc.ticker}: ${formatPrice(alloc.value)} VND (${alloc.percentage?.toFixed(1)}%)`;
+          },
+        },
+      },
+    },
   };
 
   if (loading) {
@@ -87,6 +128,37 @@ export default function PortfolioPage() {
         </div>
       </div>
 
+      {/* Allocation Chart + Legend */}
+      {chartData && (
+        <div className="pf-allocation-section">
+          <h3>📊 Phân bổ tài sản</h3>
+          <div className="pf-allocation-content">
+            <div className="pf-chart-wrapper">
+              <Doughnut data={chartData} options={chartOptions} />
+              <div className="pf-chart-center">
+                <div className="pf-chart-center-value">{portfolio.length}</div>
+                <div className="pf-chart-center-label">Cổ phiếu</div>
+              </div>
+            </div>
+            <div className="pf-allocation-legend">
+              {summary.allocations.map(alloc => (
+                <div key={alloc.ticker} className="pf-legend-item">
+                  <div className="pf-legend-color" style={{ background: alloc.color }}></div>
+                  <div className="pf-legend-info">
+                    <span className="pf-legend-ticker">{alloc.ticker}</span>
+                    <span className="pf-legend-name">{alloc.companyName}</span>
+                  </div>
+                  <div className="pf-legend-values">
+                    <span className="pf-legend-pct">{alloc.percentage?.toFixed(1)}%</span>
+                    <span className="pf-legend-value">{formatPrice(alloc.value)} VND</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Portfolio Table */}
       {portfolio.length === 0 ? (
         <div className="pf-empty">
@@ -117,10 +189,7 @@ export default function PortfolioPage() {
                 <tr key={item.ticker}>
                   <td style={{ textAlign: 'left' }}>
                     <div className="pf-ticker-cell">
-                      <div
-                        className="pf-ticker-icon"
-                        style={{ background: getTickerColor(item.ticker) }}
-                      >
+                      <div className="pf-ticker-icon" style={{ background: getTickerColor(item.ticker) }}>
                         {item.ticker.substring(0, 2)}
                       </div>
                       <span className="pf-ticker-symbol">{item.ticker}</span>
@@ -147,10 +216,7 @@ export default function PortfolioPage() {
                     </div>
                   </td>
                   <td>
-                    <button
-                      className="pf-sell-btn"
-                      onClick={() => navigate('/trading')}
-                    >
+                    <button className="pf-sell-btn" onClick={() => navigate('/trading')}>
                       Bán
                     </button>
                   </td>

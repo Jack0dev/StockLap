@@ -70,6 +70,15 @@ export const tradeAPI = {
     return api.get('/trade/transactions', { params });
   },
   getPortfolio: () => api.get('/trade/portfolio'),
+  getPortfolioSummary: () => api.get('/trade/portfolio/summary'),
+};
+
+// ===== Watchlist APIs =====
+export const watchlistAPI = {
+  getAll: () => api.get('/watchlist'),
+  add: (ticker) => api.post(`/watchlist/${ticker}`),
+  remove: (ticker) => api.delete(`/watchlist/${ticker}`),
+  isWatched: (ticker) => api.get(`/watchlist/check/${ticker}`),
 };
 
 export default api;

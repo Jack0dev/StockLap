@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { createChart, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
-import { stockAPI } from '../api/api';
+import { stockAPI, watchlistAPI } from '../api/api';
 import './StockDetailPage.css';
 
 const RANGES = ['1W', '1M', '3M', '6M', '1Y'];
@@ -15,10 +15,34 @@ export default function StockDetailPage() {
   const [stock, setStock] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedRange, setSelectedRange] = useState('3M');
+  const [isWatched, setIsWatched] = useState(false);
+  const [watchLoading, setWatchLoading] = useState(false);
 
   useEffect(() => {
     fetchStockDetail();
+    checkWatchlist();
   }, [ticker]);
+
+  const checkWatchlist = async () => {
+    try {
+      const res = await watchlistAPI.isWatched(ticker);
+      if (res.data.success) setIsWatched(res.data.data);
+    } catch (err) { /* ignore */ }
+  };
+
+  const toggleWatchlist = async () => {
+    setWatchLoading(true);
+    try {
+      if (isWatched) {
+        await watchlistAPI.remove(ticker);
+        setIsWatched(false);
+      } else {
+        await watchlistAPI.add(ticker);
+        setIsWatched(true);
+      }
+    } catch (err) { console.error(err); }
+    setWatchLoading(false);
+  };
 
   useEffect(() => {
     if (stock) {
@@ -215,6 +239,13 @@ export default function StockDetailPage() {
               </span>
             </div>
           </div>
+          <button
+            className={`watchlist-btn ${isWatched ? 'watched' : ''}`}
+            onClick={toggleWatchlist}
+            disabled={watchLoading}
+          >
+            {isWatched ? '★ Đang theo dõi' : '☆ Theo dõi'}
+          </button>
         </div>
 
         <div className="stock-header-right">

@@ -254,6 +254,125 @@
   transform: translateY(-1px);
 }
 
+/* Allocation Section */
+.pf-allocation-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+}
+
+.pf-allocation-section h3 {
+  font-size: 1rem;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pf-allocation-content {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 32px;
+  align-items: center;
+}
+
+.pf-chart-wrapper {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  margin: 0 auto;
+}
+
+.pf-chart-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.pf-chart-center-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pf-chart-center-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Allocation Legend */
+.pf-allocation-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pf-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  transition: var(--transition);
+}
+
+.pf-legend-item:hover {
+  background: var(--bg-hover);
+}
+
+.pf-legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.pf-legend-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pf-legend-ticker {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.pf-legend-name {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pf-legend-values {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+}
+
+.pf-legend-pct {
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.pf-legend-value {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Loading */
 .pf-loading {
   display: flex;
@@ -274,6 +393,15 @@
 @media (max-width: 1024px) {
   .pf-summary-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .pf-allocation-content {
+    grid-template-columns: 1fr;
+  }
+
+  .pf-chart-wrapper {
+    width: 200px;
+    height: 200px;
   }
 }
 
