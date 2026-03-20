@@ -276,6 +276,74 @@ public class TradeService {
                 .build();
     }
 
+    /**
+     * Portfolio Summary (cho charts)
+     */
+    public ApiResponse<PortfolioSummaryResponse> getPortfolioSummary(String username) {
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) return ApiResponse.error("Không tìm thấy người dùng");
+
+        List<Portfolio> holdings = portfolioRepository.findByUserId(user.getId());
+
+        String[] chartColors = {
+            "#2962ff", "#00c853", "#ff6d00", "#aa00ff", "#d50000",
+            "#00bfa5", "#6200ea", "#c51162", "#0091ea", "#64dd17"
+        };
+
+        BigDecimal totalStockValue = BigDecimal.ZERO;
+        List<PortfolioSummaryResponse.AllocationItem> allocations = new java.util.ArrayList<>();
+
+        for (int i = 0; i < holdings.size(); i++) {
+            Portfolio p = holdings.get(i);
+            Stock stock = p.getStock();
+            BigDecimal value = stock.getCurrentPrice().multiply(BigDecimal.valueOf(p.getQuantity()));
+            totalStockValue = totalStockValue.add(value);
+
+            allocations.add(PortfolioSummaryResponse.AllocationItem.builder()
+                    .ticker(stock.getTicker())
+                    .companyName(stock.getCompanyName())
+                    .value(value)
+                    .color(chartColors[i % chartColors.length])
+                    .build());
+        }
+
+        // Tính percentage
+        BigDecimal totalAssets = totalStockValue.add(user.getBalance());
+        for (PortfolioSummaryResponse.AllocationItem item : allocations) {
+            if (totalStockValue.compareTo(BigDecimal.ZERO) > 0) {
+                item.setPercentage(item.getValue()
+                        .divide(totalStockValue, 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100))
+                        .doubleValue());
+            } else {
+                item.setPercentage(0.0);
+            }
+        }
+
+        // Tính P&L
+        BigDecimal totalInvested = BigDecimal.ZERO;
+        for (Portfolio p : holdings) {
+            totalInvested = totalInvested.add(
+                    p.getAvgBuyPrice().multiply(BigDecimal.valueOf(p.getQuantity())));
+        }
+        BigDecimal totalPnL = totalStockValue.subtract(totalInvested);
+        double totalPnLPercent = totalInvested.compareTo(BigDecimal.ZERO) > 0
+                ? totalPnL.divide(totalInvested, 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100)).doubleValue()
+                : 0.0;
+
+        PortfolioSummaryResponse summary = PortfolioSummaryResponse.builder()
+                .totalAssets(totalAssets)
+                .totalStockValue(totalStockValue)
+                .cashBalance(user.getBalance())
+                .totalPnL(totalPnL)
+                .totalPnLPercent(totalPnLPercent)
+                .allocations(allocations)
+                .build();
+
+        return ApiResponse.success("OK", summary);
+    }
+
     private String formatCurrency(BigDecimal amount) {
         return String.format("%,.0f", amount);
     }

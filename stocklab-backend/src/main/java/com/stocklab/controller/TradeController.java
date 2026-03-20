@@ -94,4 +94,21 @@ public class TradeController {
         }
         return ResponseEntity.badRequest().body(response);
     }
+
+    /**
+     * GET /api/trade/portfolio/summary
+     * Tổng quan danh mục đầu tư (cho charts)
+     */
+    @GetMapping("/portfolio/summary")
+    public ResponseEntity<ApiResponse<PortfolioSummaryResponse>> getPortfolioSummary(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        ApiResponse<PortfolioSummaryResponse> response = tradeService.getPortfolioSummary(
+                userDetails.getUsername());
+
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
 }
