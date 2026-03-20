@@ -65,6 +65,38 @@
   font-size: 0.875rem;
 }
 
+/* Watchlist Button */
+.watchlist-btn {
+  margin-top: 8px;
+  padding: 6px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.watchlist-btn:hover {
+  border-color: #ffd600;
+  color: #ffd600;
+}
+
+.watchlist-btn.watched {
+  background: rgba(255, 214, 0, 0.12);
+  border-color: #ffd600;
+  color: #ffd600;
+  font-weight: 600;
+}
+
+.watchlist-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
 .stock-header-right {
   text-align: right;
 }
