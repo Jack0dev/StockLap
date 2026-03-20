@@ -8,6 +8,9 @@ import DashboardPage from './pages/DashboardPage'
 import ProfilePage from './pages/ProfilePage'
 import StockListPage from './pages/StockListPage'
 import StockDetailPage from './pages/StockDetailPage'
+import TradingPage from './pages/TradingPage'
+import TransactionHistoryPage from './pages/TransactionHistoryPage'
+import PortfolioPage from './pages/PortfolioPage'
 
 // Layout chính (có Navbar) cho các trang sau khi đăng nhập
 function AppLayout() {
@@ -48,6 +51,9 @@ function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/stocks" element={<StockListPage />} />
         <Route path="/stocks/:ticker" element={<StockDetailPage />} />
+        <Route path="/trading" element={<TradingPage />} />
+        <Route path="/transactions" element={<TransactionHistoryPage />} />
+        <Route path="/portfolio" element={<PortfolioPage />} />
       </Route>
 
       {/* Default redirect */}
