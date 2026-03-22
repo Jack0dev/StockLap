@@ -56,6 +56,17 @@ public class User {
     @Builder.Default
     private BigDecimal balance = new BigDecimal("10000000.00"); // 10 triệu VND mặc định
 
+    @Column(nullable = false, precision = 15, scale = 2)
+    @Builder.Default
+    private BigDecimal lockedBalance = BigDecimal.ZERO; // Tiền bị lock cho lệnh BUY đang PENDING
+
+    /**
+     * Số dư khả dụng = tổng số dư - tiền đang lock
+     */
+    public BigDecimal getAvailableBalance() {
+        return balance.subtract(lockedBalance);
+    }
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
