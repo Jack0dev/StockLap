@@ -56,6 +56,10 @@ public class User {
     @Builder.Default
     private BigDecimal balance = new BigDecimal("10000000.00"); // 10 triệu VND mặc định
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean isActive = true;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;

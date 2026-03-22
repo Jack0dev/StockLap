@@ -18,5 +18,6 @@ public class UserProfileResponse {
     private String phone;
     private String role;
     private BigDecimal balance;
+    private boolean isActive;
     private LocalDateTime createdAt;
 }
