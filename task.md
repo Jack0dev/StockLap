@@ -92,7 +92,7 @@
 
 - [x] **ADM-1** Phân quyền Admin
 - [x] **ADM-2** Quản lý Users
-- [ ] **ADM-3** Quản lý Stocks
+- [x] **ADM-3** Quản lý Stocks
 - [ ] **ADM-4** Dashboard thống kê
 - [ ] **ADM-5** Quản lý lệnh
 

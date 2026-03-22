@@ -14,6 +14,7 @@ import TransactionHistoryPage from './pages/TransactionHistoryPage'
 import PortfolioPage from './pages/PortfolioPage'
 import WatchlistPage from './pages/WatchlistPage'
 import AdminUsersPage from './pages/AdminUsersPage'
+import AdminStocksPage from './pages/AdminStocksPage'
 
 // Trang mẫu cho Admin
 function AdminDashboard() {
@@ -74,6 +75,7 @@ function App() {
         <Route element={<AppLayout />}>
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />
+          <Route path="/admin/stocks" element={<AdminStocksPage />} />
         </Route>
       </Route>
 
