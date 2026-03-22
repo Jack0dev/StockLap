@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import AdminRoute from './components/AdminRoute'
 import Navbar from './components/Navbar'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -13,6 +14,16 @@ import TransactionHistoryPage from './pages/TransactionHistoryPage'
 import PortfolioPage from './pages/PortfolioPage'
 import WatchlistPage from './pages/WatchlistPage'
 import AdminUsersPage from './pages/AdminUsersPage'
+
+// Trang mẫu cho Admin
+function AdminDashboard() {
+  return (
+    <div style={{ padding: '20px' }}>
+      <h1>Admin Dashboard</h1>
+      <p>Chỉ admin mới thấy trang này.</p>
+    </div>
+  )
+}
 
 // Layout chính (có Navbar) cho các trang sau khi đăng nhập
 function AppLayout() {
@@ -49,7 +60,6 @@ function App() {
           <AppLayout />
         </ProtectedRoute>
       }>
-
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/stocks" element={<StockListPage />} />
         <Route path="/stocks/:ticker" element={<StockDetailPage />} />
@@ -57,6 +67,14 @@ function App() {
         <Route path="/transactions" element={<TransactionHistoryPage />} />
         <Route path="/portfolio" element={<PortfolioPage />} />
         <Route path="/watchlist" element={<WatchlistPage />} />
+      </Route>
+
+      {/* Admin routes */}
+      <Route element={<AdminRoute />}>
+        <Route element={<AppLayout />}>
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/users" element={<AdminUsersPage />} />
+        </Route>
       </Route>
 
       {/* Default redirect */}
