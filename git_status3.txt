@@ -1,0 +1,9 @@
+﻿?? build_log.txt
+?? build_output.txt
+?? git_status.txt
+?? git_status2.txt
+?? git_status3.txt
+?? reset_root.sql
+?? run_log.txt
+?? stocklab-backend/.mvn/
+?? stocklab-backend/mvnw.cmd
