@@ -85,6 +85,7 @@ export const watchlistAPI = {
 export const adminAPI = {
   getAllUsers: () => api.get('/admin/users'),
   toggleUserLock: (userId) => api.put(`/admin/users/${userId}/toggle-lock`),
+  changeUserRole: (userId, role) => api.put(`/admin/users/${userId}/role`, { role }),
 };
 
 export default api;

@@ -166,4 +166,18 @@ public class UserService {
         String status = user.isActive() ? "mở khoá" : "khoá";
         return ApiResponse.success("Đã " + status + " tài khoản " + user.getUsername() + " thành công!");
     }
+
+    public ApiResponse<String> changeUserRole(Long userId, String newRole) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+
+        try {
+            Role roleEnum = Role.valueOf(newRole.toUpperCase());
+            user.setRole(roleEnum);
+            userRepository.save(user);
+            return ApiResponse.success("Đã cấp quyền " + roleEnum.name() + " cho tài khoản " + user.getUsername() + " thành công!");
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.error("Quyền không hợp lệ!");
+        }
+    }
 }

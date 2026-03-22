@@ -35,6 +35,7 @@ public class DataSeeder implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         seedAdminUser();
+        unlockAllExistingUsers();
 
         if (stockRepository.count() > 0) {
             log.info("📊 Database đã có dữ liệu cổ phiếu, bỏ qua seeding.");
@@ -165,6 +166,21 @@ public class DataSeeder implements CommandLineRunner {
                     .build();
             userRepository.save(admin);
             log.info("👤 Đã tạo tài khoản admin mặc định (admin / Admin@123)");
+        }
+    }
+
+    private void unlockAllExistingUsers() {
+        List<User> users = userRepository.findAll();
+        boolean changed = false;
+        for (User u : users) {
+            if (!u.isActive()) {
+                u.setActive(true);
+                changed = true;
+            }
+        }
+        if (changed) {
+            userRepository.saveAll(users);
+            log.info("🔓 Đã tự động mở khoá (isActive = true) cho các tài khoản cũ do cập nhật cấu trúc Database.");
         }
     }
 
