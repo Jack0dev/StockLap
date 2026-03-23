@@ -201,6 +201,59 @@ public class OrderService {
         return ApiResponse.success("OK", toOrderResponse(order));
     }
 
+    /**
+     * Hủy lệnh — chỉ cho phép PENDING hoặc PARTIAL
+     */
+    @Transactional
+    public ApiResponse<OrderResponse> cancelOrder(String username, Long orderId) {
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) {
+            return ApiResponse.error("Không tìm thấy người dùng");
+        }
+
+        Order order = orderRepository.findById(orderId).orElse(null);
+        if (order == null) {
+            return ApiResponse.error("Không tìm thấy lệnh #" + orderId);
+        }
+
+        // Chỉ cho phép hủy lệnh của chính mình
+        if (!order.getUser().getId().equals(user.getId())) {
+            return ApiResponse.error("Bạn không có quyền hủy lệnh này");
+        }
+
+        // Chỉ hủy được PENDING hoặc PARTIAL
+        if (!order.isCancellable()) {
+            return ApiResponse.error("Không thể hủy lệnh ở trạng thái: " + order.getStatus());
+        }
+
+        int remainingQty = order.getRemainingQuantity();
+
+        // Unlock tài sản theo remaining quantity
+        if (order.getSide() == OrderSide.BUY) {
+            // Hoàn tiền locked = remaining * price
+            BigDecimal refund = order.getPrice().multiply(BigDecimal.valueOf(remainingQty));
+            user.setLockedBalance(user.getLockedBalance().subtract(refund));
+            userRepository.save(user);
+        } else {
+            // Hoàn CP locked
+            Portfolio portfolio = portfolioRepository
+                    .findByUserIdAndStockId(user.getId(), order.getStock().getId())
+                    .orElse(null);
+            if (portfolio != null) {
+                portfolio.setLockedQuantity(portfolio.getLockedQuantity() - remainingQty);
+                portfolioRepository.save(portfolio);
+            }
+        }
+
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+
+        return ApiResponse.success(
+                "Đã hủy lệnh #" + orderId + " thành công! Hoàn " + remainingQty +
+                        (order.getSide() == OrderSide.BUY ? " phần tiền đã lock" : " CP đã lock"),
+                toOrderResponse(order));
+    }
+
     // ===== Helper Methods =====
 
     OrderResponse toOrderResponse(Order order) {

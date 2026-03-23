@@ -353,4 +353,120 @@ class OrderServiceTest {
             assertEquals("PARTIAL", response.getStatus());
         }
     }
+
+    // ===== cancelOrder =====
+
+    @Nested
+    @DisplayName("cancelOrder")
+    class CancelOrderTests {
+
+        @Test
+        @DisplayName("Hủy lệnh BUY PENDING → hoàn tiền locked")
+        void shouldCancelBuyPendingAndUnlockMoney() {
+            testUser.setLockedBalance(new BigDecimal("850000.00")); // 10 * 85000
+            Order order = Order.builder()
+                    .id(1L).user(testUser).stock(testStock)
+                    .side(OrderSide.BUY).orderType(OrderType.LIMIT)
+                    .quantity(10).filledQuantity(0)
+                    .price(new BigDecimal("85000.00"))
+                    .status(OrderStatus.PENDING).build();
+
+            when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+            when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+            ApiResponse<OrderResponse> result = orderService.cancelOrder("testuser", 1L);
+
+            assertTrue(result.isSuccess());
+            assertEquals("CANCELLED", result.getData().getStatus());
+            // Hoàn tiền: 850000 - 10*85000 = 0
+            assertEquals(BigDecimal.ZERO.setScale(2), testUser.getLockedBalance().setScale(2));
+            verify(userRepository).save(testUser);
+            verify(orderRepository).save(order);
+        }
+
+        @Test
+        @DisplayName("Hủy lệnh SELL PENDING → hoàn CP locked")
+        void shouldCancelSellPendingAndUnlockShares() {
+            testPortfolio.setLockedQuantity(50);
+            Order order = Order.builder()
+                    .id(2L).user(testUser).stock(testStock)
+                    .side(OrderSide.SELL).orderType(OrderType.LIMIT)
+                    .quantity(50).filledQuantity(0)
+                    .price(new BigDecimal("90000.00"))
+                    .status(OrderStatus.PENDING).build();
+
+            when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+            when(orderRepository.findById(2L)).thenReturn(Optional.of(order));
+            when(portfolioRepository.findByUserIdAndStockId(1L, 1L)).thenReturn(Optional.of(testPortfolio));
+
+            ApiResponse<OrderResponse> result = orderService.cancelOrder("testuser", 2L);
+
+            assertTrue(result.isSuccess());
+            assertEquals("CANCELLED", result.getData().getStatus());
+            assertEquals(0, testPortfolio.getLockedQuantity());
+            verify(portfolioRepository).save(testPortfolio);
+        }
+
+        @Test
+        @DisplayName("Hủy lệnh BUY PARTIAL → hoàn tiền remaining")
+        void shouldCancelPartialBuyAndUnlockRemainingMoney() {
+            testUser.setLockedBalance(new BigDecimal("850000.00")); // locked cho 10 CP
+            Order order = Order.builder()
+                    .id(3L).user(testUser).stock(testStock)
+                    .side(OrderSide.BUY).orderType(OrderType.LIMIT)
+                    .quantity(10).filledQuantity(4) // Đã khớp 4, còn 6
+                    .price(new BigDecimal("85000.00"))
+                    .status(OrderStatus.PARTIAL).build();
+
+            when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+            when(orderRepository.findById(3L)).thenReturn(Optional.of(order));
+
+            ApiResponse<OrderResponse> result = orderService.cancelOrder("testuser", 3L);
+
+            assertTrue(result.isSuccess());
+            // Hoàn remaining: 850000 - 6*85000 = 340000
+            assertEquals(new BigDecimal("340000.00"), testUser.getLockedBalance());
+        }
+
+        @Test
+        @DisplayName("Hủy lệnh FILLED → error")
+        void shouldFailCancelFilledOrder() {
+            Order order = Order.builder()
+                    .id(4L).user(testUser).stock(testStock)
+                    .side(OrderSide.BUY).orderType(OrderType.LIMIT)
+                    .quantity(10).filledQuantity(10)
+                    .price(new BigDecimal("85000.00"))
+                    .status(OrderStatus.FILLED).build();
+
+            when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+            when(orderRepository.findById(4L)).thenReturn(Optional.of(order));
+
+            ApiResponse<OrderResponse> result = orderService.cancelOrder("testuser", 4L);
+
+            assertFalse(result.isSuccess());
+            assertTrue(result.getMessage().contains("Không thể hủy lệnh"));
+            verify(orderRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Hủy lệnh người khác → error")
+        void shouldFailCancelOtherUserOrder() {
+            User otherUser = User.builder().id(2L).username("otheruser").build();
+            Order order = Order.builder()
+                    .id(5L).user(otherUser).stock(testStock)
+                    .side(OrderSide.BUY).orderType(OrderType.LIMIT)
+                    .quantity(10).filledQuantity(0)
+                    .price(new BigDecimal("85000.00"))
+                    .status(OrderStatus.PENDING).build();
+
+            when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+            when(orderRepository.findById(5L)).thenReturn(Optional.of(order));
+
+            ApiResponse<OrderResponse> result = orderService.cancelOrder("testuser", 5L);
+
+            assertFalse(result.isSuccess());
+            assertTrue(result.getMessage().contains("không có quyền"));
+            verify(orderRepository, never()).save(any());
+        }
+    }
 }

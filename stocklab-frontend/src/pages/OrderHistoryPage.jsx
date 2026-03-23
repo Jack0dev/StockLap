@@ -8,6 +8,7 @@ export default function OrderHistoryPage() {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [cancellingId, setCancellingId] = useState(null);
 
   const PAGE_SIZE = 10;
 
@@ -27,6 +28,24 @@ export default function OrderHistoryPage() {
       console.error('Lỗi tải lệnh:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancel = async (orderId, ticker) => {
+    if (!window.confirm(`Bạn chắc chắn muốn hủy lệnh ${ticker}?`)) return;
+    setCancellingId(orderId);
+    try {
+      const res = await orderAPI.cancelOrder(orderId);
+      if (res.data.success) {
+        alert(res.data.message);
+        fetchOrders();
+      } else {
+        alert(res.data.message || 'Hủy lệnh thất bại');
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Lỗi hủy lệnh');
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -126,6 +145,7 @@ export default function OrderHistoryPage() {
                     <th>Tổng tiền</th>
                     <th>Trạng thái</th>
                     <th>Thời gian</th>
+                    <th>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -165,6 +185,17 @@ export default function OrderHistoryPage() {
                         </span>
                       </td>
                       <td className="oh-date">{formatDate(order.createdAt)}</td>
+                      <td>
+                        {(order.status === 'PENDING' || order.status === 'PARTIAL') && (
+                          <button
+                            className="oh-cancel-btn"
+                            disabled={cancellingId === order.id}
+                            onClick={() => handleCancel(order.id, order.ticker)}
+                          >
+                            {cancellingId === order.id ? 'Đang hủy...' : 'Hủy'}
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

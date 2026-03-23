@@ -274,6 +274,32 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Cancel Button */
+.oh-cancel-btn {
+  padding: 5px 14px;
+  background: rgba(255, 23, 68, 0.1);
+  color: var(--danger);
+  border: 1px solid rgba(255, 23, 68, 0.3);
+  border-radius: 6px;
+  font-family: var(--font);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.oh-cancel-btn:hover:not(:disabled) {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+
+.oh-cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .order-history-page {
