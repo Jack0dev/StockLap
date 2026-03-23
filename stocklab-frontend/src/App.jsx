@@ -3,17 +3,11 @@ import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
 import Navbar from './components/Navbar'
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
 
-import ProfilePage from './pages/ProfilePage'
-import StockListPage from './pages/StockListPage'
-import StockDetailPage from './pages/StockDetailPage'
-import TradingPage from './pages/TradingPage'
-import TransactionHistoryPage from './pages/TransactionHistoryPage'
-import PortfolioPage from './pages/PortfolioPage'
-import WatchlistPage from './pages/WatchlistPage'
-import OrderHistoryPage from './pages/OrderHistoryPage'
+// Route modules — mỗi module quản lý route riêng, tránh conflict
+import publicRoutes from './routes/PublicRoutes'
+import protectedRoutes from './routes/ProtectedRoutes'
+import adminRoutes from './routes/AdminRoutes'
 
 // Layout chính (có Navbar) cho các trang sau khi đăng nhập
 function AppLayout() {
@@ -41,8 +35,9 @@ function App() {
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/login" element={isAuthenticated ? <Navigate to="/stocks" /> : <LoginPage />} />
-      <Route path="/register" element={isAuthenticated ? <Navigate to="/stocks" /> : <RegisterPage />} />
+      {publicRoutes.map(({ path, page: Page }) => (
+        <Route key={path} path={path} element={isAuthenticated ? <Navigate to="/stocks" /> : <Page />} />
+      ))}
 
       {/* Protected routes */}
       <Route element={
@@ -50,21 +45,17 @@ function App() {
           <AppLayout />
         </ProtectedRoute>
       }>
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/stocks" element={<StockListPage />} />
-        <Route path="/stocks/:ticker" element={<StockDetailPage />} />
-        <Route path="/trading" element={<TradingPage />} />
-        <Route path="/transactions" element={<TransactionHistoryPage />} />
-        <Route path="/portfolio" element={<PortfolioPage />} />
-        <Route path="/watchlist" element={<WatchlistPage />} />
-        <Route path="/orders" element={<OrderHistoryPage />} />
+        {protectedRoutes.map(({ path, element }) => (
+          <Route key={path} path={path} element={element} />
+        ))}
       </Route>
 
       {/* Admin routes */}
       <Route element={<AdminRoute />}>
         <Route element={<AppLayout />}>
-          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-          <Route path="/admin/users" element={<AdminUsersPage />} />
+          {adminRoutes.map(({ path, element }) => (
+            <Route key={path} path={path} element={element} />
+          ))}
         </Route>
       </Route>
 
