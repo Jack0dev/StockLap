@@ -8,6 +8,7 @@ import com.stocklab.repository.StockPriceHistoryRepository;
 import com.stocklab.repository.StockRepository;
 import com.stocklab.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,8 +35,13 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        seedAdminUser();
+        unlockAllExistingUsers();
+
         seedUsers();
+        unlockAllExistingUsers();
         seedStocks();
+        unlockAllExistingStocks();
     }
 
     private void seedUsers() {
@@ -206,6 +212,51 @@ public class DataSeeder implements CommandLineRunner {
 
     private BigDecimal toBigDecimal(double value) {
         return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private void seedAdminUser() {
+        if (!userRepository.existsByUsername("admin")) {
+            User admin = User.builder()
+                    .username("admin")
+                    .email("admin@stocklab.com")
+                    .fullName("System Admin")
+                    .password(passwordEncoder.encode("Admin@123"))
+                    .role(Role.ADMIN)
+                    .balance(new BigDecimal("100000000.00")) // 100M VND
+                    .build();
+            userRepository.save(admin);
+            log.info("👤 Đã tạo tài khoản admin mặc định (admin / Admin@123)");
+        }
+    }
+
+    private void unlockAllExistingUsers() {
+        List<User> users = userRepository.findAll();
+        boolean changed = false;
+        for (User u : users) {
+            if (!u.isActive()) {
+                u.setActive(true);
+                changed = true;
+            }
+        }
+        if (changed) {
+            userRepository.saveAll(users);
+            log.info("🔓 Đã tự động mở khoá (isActive = true) cho các tài khoản cũ do cập nhật cấu trúc Database.");
+        }
+    }
+
+    private void unlockAllExistingStocks() {
+        List<Stock> stocks = stockRepository.findAll();
+        boolean changed = false;
+        for (Stock s : stocks) {
+            if (!s.isActive()) {
+                s.setActive(true);
+                changed = true;
+            }
+        }
+        if (changed) {
+            stockRepository.saveAll(stocks);
+            log.info("🔓 Đã tự động mở khoá (isActive = true) cho các mã cổ phiếu cũ do cập nhật cấu trúc Database.");
+        }
     }
 
     private record StockSeedData(String ticker, String companyName, String exchange, double basePrice) {}

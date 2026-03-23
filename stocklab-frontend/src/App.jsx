@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import AdminRoute from './components/AdminRoute'
 import Navbar from './components/Navbar'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -49,7 +50,6 @@ function App() {
           <AppLayout />
         </ProtectedRoute>
       }>
-
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/stocks" element={<StockListPage />} />
         <Route path="/stocks/:ticker" element={<StockDetailPage />} />
@@ -58,6 +58,14 @@ function App() {
         <Route path="/portfolio" element={<PortfolioPage />} />
         <Route path="/watchlist" element={<WatchlistPage />} />
         <Route path="/orders" element={<OrderHistoryPage />} />
+      </Route>
+
+      {/* Admin routes */}
+      <Route element={<AdminRoute />}>
+        <Route element={<AppLayout />}>
+          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+          <Route path="/admin/users" element={<AdminUsersPage />} />
+        </Route>
       </Route>
 
       {/* Default redirect */}
