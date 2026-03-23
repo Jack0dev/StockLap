@@ -12,6 +12,7 @@ import TradingPage from './pages/TradingPage'
 import TransactionHistoryPage from './pages/TransactionHistoryPage'
 import PortfolioPage from './pages/PortfolioPage'
 import WatchlistPage from './pages/WatchlistPage'
+import OrderHistoryPage from './pages/OrderHistoryPage'
 
 // Layout chính (có Navbar) cho các trang sau khi đăng nhập
 function AppLayout() {
@@ -56,6 +57,7 @@ function App() {
         <Route path="/transactions" element={<TransactionHistoryPage />} />
         <Route path="/portfolio" element={<PortfolioPage />} />
         <Route path="/watchlist" element={<WatchlistPage />} />
+        <Route path="/orders" element={<OrderHistoryPage />} />
       </Route>
 
       {/* Default redirect */}
