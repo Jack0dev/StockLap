@@ -54,7 +54,7 @@
 - [x] **OMS-4** Sửa lệnh (Modify Order)
 - [x] **OMS-5** Sổ lệnh (Order Book)
 - [x] **OMS-6** Lịch sử lệnh (My Orders)
-- [ ] **OMS-7** Chi tiết lệnh
+- [x] **OMS-7** Chi tiết lệnh
 - [ ] **OMS-8** Xác nhận lệnh bằng OTP
 
 ---

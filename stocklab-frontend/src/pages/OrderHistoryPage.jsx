@@ -13,6 +13,8 @@ export default function OrderHistoryPage() {
   const [modifyQty, setModifyQty] = useState('');
   const [modifyPrice, setModifyPrice] = useState('');
   const [modifyLoading, setModifyLoading] = useState(false);
+  const [detailOrder, setDetailOrder] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const PAGE_SIZE = 10;
 
@@ -182,7 +184,7 @@ export default function OrderHistoryPage() {
                 </thead>
                 <tbody>
                   {orders.map(order => (
-                    <tr key={order.id}>
+                    <tr key={order.id} className="oh-row-clickable" onClick={() => handleViewDetail(order.id)}>
                       <td>
                         <div className="oh-ticker-cell">
                           <div
@@ -218,23 +220,31 @@ export default function OrderHistoryPage() {
                       </td>
                       <td className="oh-date">{formatDate(order.createdAt)}</td>
                       <td>
-                        {(order.status === 'PENDING' || order.status === 'PARTIAL') && (
-                          <div className="oh-action-btns">
-                            <button
-                              className="oh-modify-btn"
-                              onClick={() => openModifyModal(order)}
-                            >
-                              Sửa
-                            </button>
-                            <button
-                              className="oh-cancel-btn"
-                              disabled={cancellingId === order.id}
-                              onClick={() => handleCancel(order.id, order.ticker)}
-                            >
-                              {cancellingId === order.id ? 'Đang hủy...' : 'Hủy'}
-                            </button>
-                          </div>
-                        )}
+                        <div className="oh-action-btns">
+                          <button
+                            className="oh-detail-btn"
+                            onClick={(e) => { e.stopPropagation(); handleViewDetail(order.id); }}
+                          >
+                            Chi tiết
+                          </button>
+                          {(order.status === 'PENDING' || order.status === 'PARTIAL') && (
+                            <>
+                              <button
+                                className="oh-modify-btn"
+                                onClick={(e) => { e.stopPropagation(); openModifyModal(order); }}
+                              >
+                                Sửa
+                              </button>
+                              <button
+                                className="oh-cancel-btn"
+                                disabled={cancellingId === order.id}
+                                onClick={(e) => { e.stopPropagation(); handleCancel(order.id, order.ticker); }}
+                              >
+                                {cancellingId === order.id ? 'Đang hủy...' : 'Hủy'}
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -323,6 +333,107 @@ export default function OrderHistoryPage() {
               >
                 {modifyLoading ? 'Đang xử lý...' : 'Xác nhận sửa lệnh'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Detail Modal */}
+      {detailOrder && (
+        <div className="oh-modal-overlay" onClick={() => setDetailOrder(null)}>
+          <div className="oh-modal oh-detail-modal fade-in" onClick={(e) => e.stopPropagation()}>
+            <div className="oh-modal-header">
+              <h3>📄 Chi tiết lệnh #{detailOrder.id}</h3>
+              <button className="oh-modal-close" onClick={() => setDetailOrder(null)}>×</button>
+            </div>
+            <div className="oh-modal-body">
+              {/* Ticker + Side */}
+              <div className="detail-hero">
+                <div className="detail-ticker-row">
+                  <div className="oh-ticker-icon" style={{ background: getTickerColor(detailOrder.ticker) }}>
+                    {detailOrder.ticker.substring(0, 2)}
+                  </div>
+                  <div>
+                    <div className="detail-ticker">{detailOrder.ticker}</div>
+                    <div className="detail-company">{detailOrder.companyName}</div>
+                  </div>
+                </div>
+                <span className={`detail-side-badge ${detailOrder.side === 'BUY' ? 'buy' : 'sell'}`}>
+                  {detailOrder.side === 'BUY' ? '📈 MUA' : '📉 BÁN'}
+                </span>
+              </div>
+
+              {/* Status */}
+              <div className="detail-status-row">
+                <span className={`oh-status ${getStatusClass(detailOrder.status)}`}>
+                  {getStatusLabel(detailOrder.status)}
+                </span>
+                <span className="detail-order-type">
+                  {detailOrder.orderType === 'MARKET' ? '⚡ Lệnh thường' : '📌 Lệnh giới hạn'}
+                </span>
+              </div>
+
+              {/* Progress bar */}
+              <div className="detail-progress">
+                <div className="detail-progress-label">
+                  <span>Tiến độ khớp lệnh</span>
+                  <span>{detailOrder.filledQuantity}/{detailOrder.quantity} CP ({detailOrder.quantity > 0 ? Math.round(detailOrder.filledQuantity / detailOrder.quantity * 100) : 0}%)</span>
+                </div>
+                <div className="detail-progress-bar">
+                  <div className="detail-progress-fill" style={{ width: `${detailOrder.quantity > 0 ? (detailOrder.filledQuantity / detailOrder.quantity * 100) : 0}%` }}></div>
+                </div>
+              </div>
+
+              {/* Detail Grid */}
+              <div className="detail-grid">
+                <div className="detail-item">
+                  <span className="detail-label">Giá đặt</span>
+                  <span className="detail-value">{formatPrice(detailOrder.price)} VND</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Số lượng đặt</span>
+                  <span className="detail-value">{detailOrder.quantity} CP</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Đã khớp</span>
+                  <span className="detail-value">{detailOrder.filledQuantity} CP</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Còn lại</span>
+                  <span className="detail-value">{detailOrder.quantity - detailOrder.filledQuantity} CP</span>
+                </div>
+                <div className="detail-item full">
+                  <span className="detail-label">Tổng giá trị</span>
+                  <span className="detail-value total">{formatPrice((detailOrder.price || 0) * detailOrder.quantity)} VND</span>
+                </div>
+              </div>
+
+              {/* Timestamps */}
+              <div className="detail-timestamps">
+                <div className="detail-ts">
+                  <span>🕐 Đặt lệnh:</span>
+                  <span>{formatDate(detailOrder.createdAt)}</span>
+                </div>
+                {detailOrder.updatedAt && detailOrder.updatedAt !== detailOrder.createdAt && (
+                  <div className="detail-ts">
+                    <span>🔄 Cập nhật:</span>
+                    <span>{formatDate(detailOrder.updatedAt)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="oh-modal-footer">
+              {(detailOrder.status === 'PENDING' || detailOrder.status === 'PARTIAL') && (
+                <>
+                  <button className="oh-modify-btn" onClick={() => { openModifyModal(detailOrder); setDetailOrder(null); }}>
+                    ✏️ Sửa lệnh
+                  </button>
+                  <button className="oh-cancel-btn" onClick={() => { handleCancel(detailOrder.id, detailOrder.ticker); setDetailOrder(null); }}>
+                    ❌ Hủy lệnh
+                  </button>
+                </>
+              )}
+              <button className="oh-modal-cancel" onClick={() => setDetailOrder(null)}>Đóng</button>
             </div>
           </div>
         </div>
