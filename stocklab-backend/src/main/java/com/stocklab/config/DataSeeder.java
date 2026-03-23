@@ -39,7 +39,9 @@ public class DataSeeder implements CommandLineRunner {
         unlockAllExistingUsers();
 
         seedUsers();
+        unlockAllExistingUsers();
         seedStocks();
+        unlockAllExistingStocks();
     }
 
     private void seedUsers() {
@@ -239,6 +241,21 @@ public class DataSeeder implements CommandLineRunner {
         if (changed) {
             userRepository.saveAll(users);
             log.info("🔓 Đã tự động mở khoá (isActive = true) cho các tài khoản cũ do cập nhật cấu trúc Database.");
+        }
+    }
+
+    private void unlockAllExistingStocks() {
+        List<Stock> stocks = stockRepository.findAll();
+        boolean changed = false;
+        for (Stock s : stocks) {
+            if (!s.isActive()) {
+                s.setActive(true);
+                changed = true;
+            }
+        }
+        if (changed) {
+            stockRepository.saveAll(stocks);
+            log.info("🔓 Đã tự động mở khoá (isActive = true) cho các mã cổ phiếu cũ do cập nhật cấu trúc Database.");
         }
     }
 
