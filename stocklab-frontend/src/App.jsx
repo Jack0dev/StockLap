@@ -13,6 +13,7 @@ import TradingPage from './pages/TradingPage'
 import TransactionHistoryPage from './pages/TransactionHistoryPage'
 import PortfolioPage from './pages/PortfolioPage'
 import WatchlistPage from './pages/WatchlistPage'
+import AdminUsersPage from './pages/AdminUsersPage'
 
 // Trang mẫu cho Admin
 function AdminDashboard() {
@@ -59,7 +60,6 @@ function App() {
           <AppLayout />
         </ProtectedRoute>
       }>
-
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/stocks" element={<StockListPage />} />
         <Route path="/stocks/:ticker" element={<StockDetailPage />} />
@@ -73,6 +73,7 @@ function App() {
       <Route element={<AdminRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/users" element={<AdminUsersPage />} />
         </Route>
       </Route>
 

@@ -3,6 +3,7 @@ package com.stocklab.service;
 import com.stocklab.dto.*;
 import com.stocklab.model.Role;
 import com.stocklab.model.User;
+import org.springframework.security.authentication.DisabledException;
 import com.stocklab.repository.UserRepository;
 import com.stocklab.security.JwtUtils;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -72,6 +75,8 @@ public class UserService {
                     .build();
 
             return ApiResponse.success("Đăng nhập thành công!", loginResponse);
+        } catch (DisabledException e) {
+            return ApiResponse.error("Tài khoản của bạn đã bị khóa!");
         } catch (Exception e) {
             return ApiResponse.error("Sai username hoặc mật khẩu!");
         }
@@ -89,6 +94,7 @@ public class UserService {
                 .phone(user.getPhone())
                 .role(user.getRole().name())
                 .balance(user.getBalance())
+                .isActive(user.isActive())
                 .createdAt(user.getCreatedAt())
                 .build();
 
@@ -128,5 +134,50 @@ public class UserService {
         userRepository.save(user);
 
         return ApiResponse.success("Đổi mật khẩu thành công!");
+    }
+
+    public ApiResponse<List<UserProfileResponse>> getAllUsers() {
+        List<UserProfileResponse> users = userRepository.findAll().stream()
+                .map(user -> UserProfileResponse.builder()
+                        .id(user.getId())
+                        .username(user.getUsername())
+                        .email(user.getEmail())
+                        .fullName(user.getFullName())
+                        .phone(user.getPhone())
+                        .role(user.getRole().name())
+                        .balance(user.getBalance())
+                        .isActive(user.isActive())
+                        .createdAt(user.getCreatedAt())
+                        .build())
+                .toList();
+        return ApiResponse.success("Lấy danh sách user thành công", users);
+    }
+
+    public ApiResponse<String> toggleUserLock(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+        
+        if (user.getRole() == Role.ADMIN) {
+            return ApiResponse.error("Không thể khoá tài khoản Admin!");
+        }
+
+        user.setActive(!user.isActive());
+        userRepository.save(user);
+        String status = user.isActive() ? "mở khoá" : "khoá";
+        return ApiResponse.success("Đã " + status + " tài khoản " + user.getUsername() + " thành công!");
+    }
+
+    public ApiResponse<String> changeUserRole(Long userId, String newRole) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+
+        try {
+            Role roleEnum = Role.valueOf(newRole.toUpperCase());
+            user.setRole(roleEnum);
+            userRepository.save(user);
+            return ApiResponse.success("Đã cấp quyền " + roleEnum.name() + " cho tài khoản " + user.getUsername() + " thành công!");
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.error("Quyền không hợp lệ!");
+        }
     }
 }

@@ -90,4 +90,11 @@ export const watchlistAPI = {
   isWatched: (ticker) => api.get(`/watchlist/check/${ticker}`),
 };
 
+// ===== Admin APIs =====
+export const adminAPI = {
+  getAllUsers: () => api.get('/admin/users'),
+  toggleUserLock: (userId) => api.put(`/admin/users/${userId}/toggle-lock`),
+  changeUserRole: (userId, role) => api.put(`/admin/users/${userId}/role`, { role }),
+};
+
 export default api;
