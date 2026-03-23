@@ -80,6 +80,7 @@ export const orderAPI = {
     return api.get('/orders', { params });
   },
   getOrderDetail: (id) => api.get(`/orders/${id}`),
+  cancelOrder: (id) => api.put(`/orders/${id}/cancel`),
 };
 
 // ===== Watchlist APIs =====

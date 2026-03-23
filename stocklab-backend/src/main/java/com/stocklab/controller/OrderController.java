@@ -75,4 +75,22 @@ public class OrderController {
         }
         return ResponseEntity.badRequest().body(response);
     }
+
+    /**
+     * PUT /api/orders/{id}/cancel
+     * Hủy lệnh PENDING hoặc PARTIAL
+     */
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<ApiResponse<OrderResponse>> cancelOrder(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long id) {
+
+        ApiResponse<OrderResponse> response = orderService.cancelOrder(
+                userDetails.getUsername(), id);
+
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
 }
