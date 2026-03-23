@@ -8,6 +8,7 @@ import com.stocklab.repository.StockPriceHistoryRepository;
 import com.stocklab.repository.StockRepository;
 import com.stocklab.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,6 +35,8 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        seedAdminUser();
+
         seedUsers();
         seedStocks();
     }
@@ -206,6 +209,21 @@ public class DataSeeder implements CommandLineRunner {
 
     private BigDecimal toBigDecimal(double value) {
         return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private void seedAdminUser() {
+        if (!userRepository.existsByUsername("admin")) {
+            User admin = User.builder()
+                    .username("admin")
+                    .email("admin@stocklab.com")
+                    .fullName("System Admin")
+                    .password(passwordEncoder.encode("Admin@123"))
+                    .role(Role.ADMIN)
+                    .balance(new BigDecimal("100000000.00")) // 100M VND
+                    .build();
+            userRepository.save(admin);
+            log.info("👤 Đã tạo tài khoản admin mặc định (admin / Admin@123)");
+        }
     }
 
     private record StockSeedData(String ticker, String companyName, String exchange, double basePrice) {}

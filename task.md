@@ -90,7 +90,7 @@
 
 ## ❌ Module 7 — Admin (0/5)
 
-- [ ] **ADM-1** Phân quyền Admin
+- [x] **ADM-1** Phân quyền Admin
 - [ ] **ADM-2** Quản lý Users
 - [ ] **ADM-3** Quản lý Stocks
 - [ ] **ADM-4** Dashboard thống kê
