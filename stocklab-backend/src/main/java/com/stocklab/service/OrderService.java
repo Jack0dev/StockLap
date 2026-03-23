@@ -51,7 +51,8 @@ public class OrderService {
         try {
             orderType = OrderType.valueOf(request.getOrderType().toUpperCase());
         } catch (IllegalArgumentException e) {
-            return ApiResponse.error("Kiểu lệnh không hợp lệ: " + request.getOrderType() + ". Chỉ chấp nhận MARKET hoặc LIMIT");
+            return ApiResponse
+                    .error("Kiểu lệnh không hợp lệ: " + request.getOrderType() + ". Chỉ chấp nhận MARKET hoặc LIMIT");
         }
 
         // 4. Validate price cho LIMIT order
@@ -83,7 +84,7 @@ public class OrderService {
      * Xử lý đặt lệnh MUA
      */
     private ApiResponse<OrderResponse> placeBuyOrder(User user, Stock stock, OrderType orderType,
-                                                      BigDecimal price, int quantity) {
+            BigDecimal price, int quantity) {
         BigDecimal totalCost = price.multiply(BigDecimal.valueOf(quantity));
         BigDecimal availableBalance = user.getAvailableBalance();
 
@@ -118,7 +119,7 @@ public class OrderService {
      * Xử lý đặt lệnh BÁN
      */
     private ApiResponse<OrderResponse> placeSellOrder(User user, Stock stock, OrderType orderType,
-                                                       BigDecimal price, int quantity) {
+            BigDecimal price, int quantity) {
         // Tìm portfolio
         Portfolio portfolio = portfolioRepository.findByUserIdAndStockId(user.getId(), stock.getId())
                 .orElse(null);
@@ -252,6 +253,70 @@ public class OrderService {
                 "Đã hủy lệnh #" + orderId + " thành công! Hoàn " + remainingQty +
                         (order.getSide() == OrderSide.BUY ? " phần tiền đã lock" : " CP đã lock"),
                 toOrderResponse(order));
+    }
+
+    /**
+     * Lấy Order Book cho 1 cổ phiếu — group lệnh PENDING/PARTIAL theo giá
+     */
+    public ApiResponse<OrderBookResponse> getOrderBook(String ticker) {
+        Stock stock = stockRepository.findByTicker(ticker.toUpperCase()).orElse(null);
+        if (stock == null) {
+            return ApiResponse.error("Không tìm thấy cổ phiếu: " + ticker);
+        }
+
+        List<OrderStatus> activeStatuses = List.of(OrderStatus.PENDING, OrderStatus.PARTIAL);
+
+        // Lấy tất cả lệnh BUY đang active
+        List<Order> buyOrders = orderRepository.findByStockIdAndSideAndStatusIn(
+                stock.getId(), OrderSide.BUY, activeStatuses);
+
+        // Lấy tất cả lệnh SELL đang active
+        List<Order> sellOrders = orderRepository.findByStockIdAndSideAndStatusIn(
+                stock.getId(), OrderSide.SELL, activeStatuses);
+
+        // Group BUY theo giá → bids (giá giảm dần)
+        List<OrderBookResponse.OrderBookEntry> bids = groupByPrice(buyOrders, true);
+
+        // Group SELL theo giá → asks (giá tăng dần)
+        List<OrderBookResponse.OrderBookEntry> asks = groupByPrice(sellOrders, false);
+
+        OrderBookResponse orderBook = OrderBookResponse.builder()
+                .ticker(stock.getTicker())
+                .companyName(stock.getCompanyName())
+                .bids(bids)
+                .asks(asks)
+                .build();
+
+        return ApiResponse.success("OK", orderBook);
+    }
+
+    /**
+     * Group danh sách Order theo price → tính tổng remaining quantity + đếm số lệnh
+     */
+    private List<OrderBookResponse.OrderBookEntry> groupByPrice(List<Order> orders, boolean descending) {
+        // Group theo price
+        java.util.Map<BigDecimal, List<Order>> grouped = orders.stream()
+                .collect(java.util.stream.Collectors.groupingBy(Order::getPrice));
+
+        // Chuyển thành OrderBookEntry
+        List<OrderBookResponse.OrderBookEntry> entries = grouped.entrySet().stream()
+                .map(entry -> OrderBookResponse.OrderBookEntry.builder()
+                        .price(entry.getKey())
+                        .totalQuantity(entry.getValue().stream()
+                                .mapToInt(Order::getRemainingQuantity)
+                                .sum())
+                        .orderCount(entry.getValue().size())
+                        .build())
+                .collect(java.util.stream.Collectors.toList());
+
+        // Sắp xếp: BUY giá giảm dần, SELL giá tăng dần
+        if (descending) {
+            entries.sort((a, b) -> b.getPrice().compareTo(a.getPrice()));
+        } else {
+            entries.sort((a, b) -> a.getPrice().compareTo(b.getPrice()));
+        }
+
+        return entries;
     }
 
     // ===== Helper Methods =====

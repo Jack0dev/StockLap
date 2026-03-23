@@ -81,6 +81,7 @@ export const orderAPI = {
   },
   getOrderDetail: (id) => api.get(`/orders/${id}`),
   cancelOrder: (id) => api.put(`/orders/${id}/cancel`),
+  getOrderBook: (ticker) => api.get(`/orders/book/${ticker}`),
 };
 
 // ===== Watchlist APIs =====

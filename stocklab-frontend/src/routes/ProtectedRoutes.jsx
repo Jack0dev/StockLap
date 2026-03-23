@@ -6,16 +6,20 @@ import TransactionHistoryPage from '../pages/TransactionHistoryPage'
 import PortfolioPage from '../pages/PortfolioPage'
 import WatchlistPage from '../pages/WatchlistPage'
 import OrderHistoryPage from '../pages/OrderHistoryPage'
+import OrderBookPage from '../pages/OrderBookPage'
+import ConditionalOrderPage from '../pages/ConditionalOrderPage'
 
 const protectedRoutes = [
   { path: '/profile', element: <ProfilePage /> },
   { path: '/stocks', element: <StockListPage /> },
   { path: '/stocks/:ticker', element: <StockDetailPage /> },
   { path: '/trading', element: <TradingPage /> },
+  { path: '/conditional-order', element: <ConditionalOrderPage /> },
   { path: '/transactions', element: <TransactionHistoryPage /> },
   { path: '/portfolio', element: <PortfolioPage /> },
   { path: '/watchlist', element: <WatchlistPage /> },
   { path: '/orders', element: <OrderHistoryPage /> },
+  { path: '/order-book', element: <OrderBookPage /> },
 ]
 
 export default protectedRoutes

@@ -77,6 +77,22 @@ public class OrderController {
     }
 
     /**
+     * GET /api/orders/book/{ticker}
+     * Order Book — public, không cần đăng nhập
+     */
+    @GetMapping("/book/{ticker}")
+    public ResponseEntity<ApiResponse<OrderBookResponse>> getOrderBook(
+            @PathVariable String ticker) {
+
+        ApiResponse<OrderBookResponse> response = orderService.getOrderBook(ticker);
+
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    /**
      * PUT /api/orders/{id}/cancel
      * Hủy lệnh PENDING hoặc PARTIAL
      */

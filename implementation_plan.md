@@ -1,7 +1,7 @@
 # 📊 StockLab — Implementation Plan
 
 > Hệ thống mô phỏng sàn giao dịch chứng khoán thực tế
-> Cập nhật: 2026-03-21
+> Cập nhật: 2026-03-23
 
 ---
 
@@ -118,12 +118,12 @@ Refactor toàn bộ hệ thống giao dịch sang đặt lệnh.
 
 | ID | Task | Backend | Frontend | Trạng thái |
 |----|------|---------|----------|------------|
-| OMS-1 | **Order Model & Enums** | Entity `Order` — user, stock, type (BUY/SELL), orderType (MARKET/LIMIT), quantity, filledQty, price, status, createdAt | — | ❌ |
-| OMS-2 | **Đặt lệnh (Place Order)** | `OrderService.placeOrder()` — validate số dư/CP khả dụng, lock tiền (BUY) hoặc lock CP (SELL), status = PENDING | Form đặt lệnh — chọn BUY/SELL, MARKET/LIMIT, nhập giá (LIMIT), số lượng. Hiển thị tổng tiền dự kiến, số dư sau GD | ❌ |
-| OMS-3 | **Hủy lệnh (Cancel Order)** | `OrderService.cancelOrder()` — chỉ hủy lệnh PENDING/PARTIAL, hoàn tiền/CP đã lock | Nút hủy lệnh trên sổ lệnh, xác nhận trước khi hủy | ❌ |
+| OMS-1 | **Order Model & Enums** | Entity `Order` — user, stock, type (BUY/SELL), orderType (MARKET/LIMIT), quantity, filledQty, price, status, createdAt | — | ✅ |
+| OMS-2 | **Đặt lệnh (Place Order)** | `OrderService.placeOrder()` — validate số dư/CP khả dụng, lock tiền (BUY) hoặc lock CP (SELL), status = PENDING | Form đặt lệnh — chọn BUY/SELL, MARKET/LIMIT, nhập giá (LIMIT), số lượng. Hiển thị tổng tiền dự kiến, số dư sau GD | ✅ |
+| OMS-3 | **Hủy lệnh (Cancel Order)** | `OrderService.cancelOrder()` — chỉ hủy lệnh PENDING/PARTIAL, mở khóa tiền/CP đã lock | Nút hủy lệnh trên sổ lệnh, xác nhận trước khi hủy | ✅ |
 | OMS-4 | **Sửa lệnh (Modify Order)** | `OrderService.modifyOrder()` — hủy lệnh cũ + tạo lệnh mới (giá/số lượng mới) | Form sửa lệnh — cho phép thay đổi giá/số lượng | ❌ |
-| OMS-5 | **Sổ lệnh (Order Book)** | `OrderController.getOrderBook(ticker)` — tất cả lệnh BUY/SELL đang PENDING cho 1 CP, group theo mức giá | Component OrderBook — bảng 2 cột: bên mua (xanh) / bên bán (đỏ), hiển thị giá × khối lượng | ❌ |
-| OMS-6 | **Lịch sử lệnh (My Orders)** | `OrderController.getMyOrders()` — tất cả lệnh của user, filter theo status/ticker/ngày | Trang lịch sử lệnh — bảng danh sách lệnh + trạng thái (badge màu), nút hủy cho lệnh PENDING | ❌ |
+| OMS-5 | **Sổ lệnh (Order Book)** | `OrderController.getOrderBook(ticker)` — tất cả lệnh BUY/SELL đang PENDING cho 1 CP, group theo mức giá | Component OrderBook — bảng 2 cột: bên mua (xanh) / bên bán (đỏ), hiển thị giá × khối lượng | ✅ |
+| OMS-6 | **Lịch sử lệnh (My Orders)** | `OrderController.getMyOrders()` — tất cả lệnh của user, filter theo status/ticker/ngày | Trang lịch sử lệnh — bảng danh sách lệnh + trạng thái (badge màu), nút hủy cho lệnh PENDING | ✅ |
 | OMS-7 | **Chi tiết lệnh** | `OrderController.getOrderDetail(id)` — thông tin chi tiết 1 lệnh + các match đã xảy ra | Modal chi tiết — timeline trạng thái, danh sách match | ❌ |
 | OMS-8 | **Xác nhận lệnh bằng OTP** | Lệnh ≥ ngưỡng → yêu cầu OTP trước khi lưu vào hệ thống | Modal OTP trước khi submit lệnh | ❌ |
 
@@ -211,10 +211,10 @@ config/DataSeeder.java           [MODIFY] — thêm bot user
 
 | ID | Task | Backend | Frontend | Trạng thái |
 |----|------|---------|----------|------------|
-| ADM-1 | **Phân quyền Admin** | `@PreAuthorize("hasRole('ADMIN')")`, admin login riêng | Route `/admin/*` protected, redirect nếu không phải admin | ❌ |
+| ADM-1 | **Phân quyền Admin** | `@PreAuthorize("hasRole('ADMIN')")`, admin login riêng | Route `/admin/*` protected, redirect nếu không phải admin | ✅ |
 | ADM-2 | **Quản lý Users** | CRUD users, khóa/mở tài khoản, xem balance, xem giao dịch | Bảng users, search, filter, actions | ✅ |
 | ADM-3 | **Quản lý Stocks** | CRUD stocks, khoá/mở, xoá cứng/mềm, pagination/filter/sort | Bảng stocks nâng cao, modals | ✅ |
-| ADM-4 | **Dashboard thống kê** | Tổng user, tổng GD, tổng KL, top CP, doanh thu | Dashboard cards + charts | ❌ |
+| ADM-4 | **Dashboard thống kê** | Tổng user, tổng GD, tổng KL, top CP, doanh thu | Dashboard cards + charts | ✅ |
 | ADM-5 | **Quản lý lệnh** | Xem tất cả lệnh, force cancel, xem order book | Bảng lệnh toàn hệ thống | ❌ |
 
 ---
@@ -254,15 +254,15 @@ Bước 8: Module 8 (DevOps)                      → triển khai
 
 ## 📊 Tổng kết
 
-| Hạng mục | Số task |
-|----------|---------|
-| ✅ Đã hoàn thành | 23 |
-| ❌ Module 1 — Security & OTP | 7 |
-| ❌ Module 2 — Nạp/Rút tiền | 5 |
-| ❌ Module 3 — OMS | 8 |
-| ❌ Module 4 — Matching Engine | 6 |
-| ❌ Module 5 — WebSocket | 5 |
-| ❌ Module 6 — Trading Bot | 3 |
-| ❌ Module 7 — Admin | 5 |
-| ❌ Module 8 — DevOps | 6 |
-| **Tổng cần làm** | **45 task** |
+| Hạng mục | Hoàn thành | Tổng |
+|----------|-----------|------|
+| ✅ Nền tảng (Setup, DB, Auth, Stock, Trade, Portfolio...) | 23 | 23 |
+| Module 1 — Security & OTP | 0 | 7 |
+| Module 2 — Nạp/Rút tiền | 0 | 5 |
+| Module 3 — OMS | **4** | 8 |
+| Module 4 — Matching Engine | 0 | 6 |
+| Module 5 — WebSocket | 0 | 5 |
+| Module 6 — Trading Bot | 0 | 3 |
+| Module 7 — Admin | **4** | 5 |
+| Module 8 — DevOps | 0 | 6 |
+| **Tổng** | **31** | **68** |
