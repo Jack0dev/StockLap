@@ -1,8 +1,10 @@
 package com.stocklab.controller;
 
+import com.stocklab.dto.AdminDashboardResponse;
 import com.stocklab.dto.ApiResponse;
 import com.stocklab.dto.ChangeRoleRequest;
 import com.stocklab.dto.UserProfileResponse;
+import com.stocklab.service.AdminDashboardService;
 import com.stocklab.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,10 +20,11 @@ import java.util.List;
 public class AdminController {
 
     private final UserService userService;
+    private final AdminDashboardService adminDashboardService;
 
     @GetMapping("/dashboard")
-    public ResponseEntity<ApiResponse<String>> getAdminDashboard() {
-        return ResponseEntity.ok(ApiResponse.success("Welcome to Admin Dashboard. You have ADMIN privileges."));
+    public ResponseEntity<ApiResponse<AdminDashboardResponse>> getAdminDashboard() {
+        return ResponseEntity.ok(ApiResponse.success("Lấy dữ liệu thống kê thành công", adminDashboardService.getDashboardStats()));
     }
 
     @GetMapping("/users")
