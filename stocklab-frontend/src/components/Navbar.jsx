@@ -41,6 +41,7 @@ export default function Navbar() {
         <div className="navbar-links">
           <Link to="/stocks" className="nav-link">Bảng giá</Link>
           <Link to="/trading" className="nav-link">Giao dịch</Link>
+          <Link to="/orders" className="nav-link">Sổ lệnh</Link>
           <Link to="/portfolio" className="nav-link">Danh mục</Link>
           <Link to="/watchlist" className="nav-link">Theo dõi</Link>
           <Link to="/transactions" className="nav-link">Lịch sử GD</Link>

@@ -48,12 +48,12 @@
 
 ## ❌ Module 3 — OMS (0/8)
 
-- [ ] **OMS-1** Order Model & Enums
-- [ ] **OMS-2** Đặt lệnh (Place Order)
+- [x] **OMS-1** Order Model & Enums
+- [x] **OMS-2** Đặt lệnh (Place Order)
 - [ ] **OMS-3** Hủy lệnh (Cancel Order)
 - [ ] **OMS-4** Sửa lệnh (Modify Order)
 - [ ] **OMS-5** Sổ lệnh (Order Book)
-- [ ] **OMS-6** Lịch sử lệnh (My Orders)
+- [x] **OMS-6** Lịch sử lệnh (My Orders)
 - [ ] **OMS-7** Chi tiết lệnh
 - [ ] **OMS-8** Xác nhận lệnh bằng OTP
 
