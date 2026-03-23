@@ -6,7 +6,7 @@ import './TradingPage.css';
 export default function TradingPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('BUY');
-  const [orderType, setOrderType] = useState('MARKET');
+  const [orderType] = useState('LIMIT');
   const [ticker, setTicker] = useState('');
   const [quantity, setQuantity] = useState('');
   const [price, setPrice] = useState('');
@@ -109,13 +109,10 @@ export default function TradingPage() {
     setTicker('');
     setQuantity('');
     setPrice('');
-    setOrderType('MARKET');
   };
 
   // Tính giá sử dụng cho hiển thị
-  const effectivePrice = orderType === 'LIMIT' && price
-    ? Number(price)
-    : (selectedStock?.currentPrice || 0);
+  const effectivePrice = price ? Number(price) : (selectedStock?.currentPrice || 0);
 
   const totalAmount = selectedStock && quantity
     ? effectivePrice * Number(quantity)
@@ -125,7 +122,7 @@ export default function TradingPage() {
 
   const canTrade = () => {
     if (!selectedStock || !quantity || Number(quantity) <= 0) return false;
-    if (orderType === 'LIMIT' && (!price || Number(price) <= 0)) return false;
+    if (!price || Number(price) <= 0) return false;
     if (activeTab === 'BUY') return balance >= totalAmount;
     if (activeTab === 'SELL') return holdingQty >= Number(quantity);
     return false;
@@ -229,26 +226,7 @@ export default function TradingPage() {
           </div>
 
           <div className="form-body">
-            {/* Order Type Selector */}
-            <div className="form-group">
-              <label>Loại lệnh</label>
-              <div className="order-type-selector">
-                <button
-                  className={`ot-btn ${orderType === 'MARKET' ? 'active' : ''}`}
-                  onClick={() => setOrderType('MARKET')}
-                >
-                  <span className="ot-icon">⚡</span>
-                  <span>Thường</span>
-                </button>
-                <button
-                  className={`ot-btn ${orderType === 'LIMIT' ? 'active' : ''}`}
-                  onClick={() => setOrderType('LIMIT')}
-                >
-                  <span className="ot-icon">📌</span>
-                  <span>Giới hạn</span>
-                </button>
-              </div>
-            </div>
+
 
             {/* Stock Picker - BUY */}
             {activeTab === 'BUY' && (
@@ -349,32 +327,30 @@ export default function TradingPage() {
               </div>
             )}
 
-            {/* Price Input (LIMIT only) */}
-            {orderType === 'LIMIT' && (
-              <div className="form-group">
-                <label>Giá đặt (VND)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="100"
-                  placeholder="Nhập giá đặt lệnh"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  className="form-input"
-                />
-                {selectedStock && (
-                  <div className="price-hint">
-                    Giá hiện tại: <strong>{formatPrice(selectedStock.currentPrice)} VND</strong>
-                    <button
-                      className="price-fill-btn"
-                      onClick={() => setPrice(String(selectedStock.currentPrice))}
-                    >
-                      Dùng giá hiện tại
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Price Input */}
+            <div className="form-group">
+              <label>Giá (VND)</label>
+              <input
+                type="number"
+                min="0"
+                step="100"
+                placeholder="Nhập giá đặt lệnh"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="form-input"
+              />
+              {selectedStock && (
+                <div className="price-hint">
+                  Giá hiện tại: <strong>{formatPrice(selectedStock.currentPrice)} VND</strong>
+                  <button
+                    className="price-fill-btn"
+                    onClick={() => setPrice(String(selectedStock.currentPrice))}
+                  >
+                    Dùng giá hiện tại
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Quantity */}
             <div className="form-group">
@@ -403,14 +379,9 @@ export default function TradingPage() {
             {/* Summary */}
             {selectedStock && quantity > 0 && (
               <div className="trade-summary">
+
                 <div className="summary-row">
-                  <span>Loại lệnh</span>
-                  <span className="order-type-badge">
-                    {orderType === 'MARKET' ? '⚡ Thị trường' : '📌 Giới hạn'}
-                  </span>
-                </div>
-                <div className="summary-row">
-                  <span>{orderType === 'LIMIT' ? 'Giá đặt' : 'Giá hiện tại'}</span>
+                  <span>Giá đặt</span>
                   <span>{formatPrice(effectivePrice)} VND</span>
                 </div>
                 <div className="summary-row">
@@ -419,7 +390,7 @@ export default function TradingPage() {
                 </div>
                 <div className="summary-divider"></div>
                 <div className="summary-row total">
-                  <span>Tổng tiền {orderType === 'LIMIT' ? '(ước tính)' : ''}</span>
+                  <span>Tổng tiền</span>
                   <span className={activeTab === 'BUY' ? 'text-danger' : 'text-success'}>
                     {activeTab === 'BUY' ? '-' : '+'}{formatPrice(totalAmount)} VND
                   </span>

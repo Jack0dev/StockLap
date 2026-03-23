@@ -1,6 +1,6 @@
 # 📋 StockLab — Task Tracker
 
-> Cập nhật: 2026-03-21
+> Cập nhật: 2026-03-23
 
 ---
 
@@ -46,13 +46,13 @@
 
 ---
 
-## ❌ Module 3 — OMS (0/8)
+## ❌ Module 3 — OMS (5/8)
 
 - [x] **OMS-1** Order Model & Enums
 - [x] **OMS-2** Đặt lệnh (Place Order)
-- [ ] **OMS-3** Hủy lệnh (Cancel Order)
+- [x] **OMS-3** Hủy lệnh (Cancel Order)
 - [ ] **OMS-4** Sửa lệnh (Modify Order)
-- [ ] **OMS-5** Sổ lệnh (Order Book)
+- [x] **OMS-5** Sổ lệnh (Order Book)
 - [x] **OMS-6** Lịch sử lệnh (My Orders)
 - [ ] **OMS-7** Chi tiết lệnh
 - [ ] **OMS-8** Xác nhận lệnh bằng OTP
@@ -88,7 +88,7 @@
 
 ---
 
-## ❌ Module 7 — Admin (3/5)
+## ❌ Module 7 — Admin (4/5)
 
 - [x] **ADM-1** Phân quyền Admin
 - [x] **ADM-2** Quản lý Users
@@ -115,4 +115,4 @@
 
 ---
 
-> **Tổng: 23 đã xong / 45 cần làm = 68 task**
+> **Tổng: 32 đã xong / 36 cần làm = 68 task**
