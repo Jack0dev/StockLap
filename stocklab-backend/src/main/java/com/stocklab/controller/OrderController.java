@@ -98,11 +98,30 @@ public class OrderController {
      */
     @PutMapping("/{id}/cancel")
     public ResponseEntity<ApiResponse<OrderResponse>> cancelOrder(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
         ApiResponse<OrderResponse> response = orderService.cancelOrder(
                 userDetails.getUsername(), id);
+
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    /**
+     * PUT /api/orders/{id}/modify
+     * Sửa lệnh — hủy cũ + đặt mới với giá/KL mới
+     */
+    @PutMapping("/{id}/modify")
+    public ResponseEntity<ApiResponse<OrderResponse>> modifyOrder(
+            @PathVariable Long id,
+            @RequestBody ModifyOrderRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        ApiResponse<OrderResponse> response = orderService.modifyOrder(
+                userDetails.getUsername(), id, request);
 
         if (response.isSuccess()) {
             return ResponseEntity.ok(response);

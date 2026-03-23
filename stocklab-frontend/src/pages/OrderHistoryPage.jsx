@@ -9,6 +9,10 @@ export default function OrderHistoryPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
+  const [modifyingOrder, setModifyingOrder] = useState(null);
+  const [modifyQty, setModifyQty] = useState('');
+  const [modifyPrice, setModifyPrice] = useState('');
+  const [modifyLoading, setModifyLoading] = useState(false);
 
   const PAGE_SIZE = 10;
 
@@ -46,6 +50,34 @@ export default function OrderHistoryPage() {
       alert(err.response?.data?.message || 'Lỗi hủy lệnh');
     } finally {
       setCancellingId(null);
+    }
+  };
+
+  const openModifyModal = (order) => {
+    setModifyingOrder(order);
+    setModifyQty(String(order.quantity));
+    setModifyPrice(String(order.price));
+  };
+
+  const handleModify = async () => {
+    if (!modifyingOrder) return;
+    setModifyLoading(true);
+    try {
+      const res = await orderAPI.modifyOrder(modifyingOrder.id, {
+        quantity: Number(modifyQty),
+        price: Number(modifyPrice),
+      });
+      if (res.data.success) {
+        alert(res.data.message);
+        setModifyingOrder(null);
+        fetchOrders();
+      } else {
+        alert(res.data.message || 'Sửa lệnh thất bại');
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Lỗi sửa lệnh');
+    } finally {
+      setModifyLoading(false);
     }
   };
 
@@ -187,13 +219,21 @@ export default function OrderHistoryPage() {
                       <td className="oh-date">{formatDate(order.createdAt)}</td>
                       <td>
                         {(order.status === 'PENDING' || order.status === 'PARTIAL') && (
-                          <button
-                            className="oh-cancel-btn"
-                            disabled={cancellingId === order.id}
-                            onClick={() => handleCancel(order.id, order.ticker)}
-                          >
-                            {cancellingId === order.id ? 'Đang hủy...' : 'Hủy'}
-                          </button>
+                          <div className="oh-action-btns">
+                            <button
+                              className="oh-modify-btn"
+                              onClick={() => openModifyModal(order)}
+                            >
+                              Sửa
+                            </button>
+                            <button
+                              className="oh-cancel-btn"
+                              disabled={cancellingId === order.id}
+                              onClick={() => handleCancel(order.id, order.ticker)}
+                            >
+                              {cancellingId === order.id ? 'Đang hủy...' : 'Hủy'}
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -227,6 +267,66 @@ export default function OrderHistoryPage() {
           </>
         )}
       </div>
+
+      {/* Modify Modal */}
+      {modifyingOrder && (
+        <div className="oh-modal-overlay" onClick={() => setModifyingOrder(null)}>
+          <div className="oh-modal fade-in" onClick={(e) => e.stopPropagation()}>
+            <div className="oh-modal-header">
+              <h3>✏️ Sửa lệnh #{modifyingOrder.id}</h3>
+              <button className="oh-modal-close" onClick={() => setModifyingOrder(null)}>×</button>
+            </div>
+            <div className="oh-modal-body">
+              <div className="oh-modal-info">
+                <span className={`oh-side ${modifyingOrder.side === 'BUY' ? 'buy' : 'sell'}`}>
+                  {modifyingOrder.side === 'BUY' ? 'MUA' : 'BÁN'}
+                </span>
+                <span className="oh-modal-ticker">{modifyingOrder.ticker}</span>
+                <span className="oh-modal-company">{modifyingOrder.companyName}</span>
+              </div>
+              <div className="oh-modal-field">
+                <label>Số lượng mới</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={modifyQty}
+                  onChange={(e) => setModifyQty(e.target.value)}
+                  className="form-input"
+                />
+                <span className="oh-modal-hint">Hiện tại: {modifyingOrder.quantity} CP (khớp {modifyingOrder.filledQuantity})</span>
+              </div>
+              <div className="oh-modal-field">
+                <label>Giá mới (VND)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="100"
+                  value={modifyPrice}
+                  onChange={(e) => setModifyPrice(e.target.value)}
+                  className="form-input"
+                />
+                <span className="oh-modal-hint">Giá cũ: {formatPrice(modifyingOrder.price)} VND</span>
+              </div>
+              {modifyQty > 0 && modifyPrice > 0 && (
+                <div className="oh-modal-summary">
+                  <span>Tổng tiền mới:</span>
+                  <span className="oh-modal-total">{formatPrice(Number(modifyQty) * Number(modifyPrice))} VND</span>
+                </div>
+              )}
+            </div>
+            <div className="oh-modal-footer">
+              <button className="oh-modal-cancel" onClick={() => setModifyingOrder(null)}>Hủy bỏ</button>
+              <button
+                className="oh-modal-submit"
+                disabled={modifyLoading || !modifyQty || !modifyPrice || Number(modifyQty) <= 0 || Number(modifyPrice) <= 0}
+                onClick={handleModify}
+              >
+                {modifyLoading ? 'Đang xử lý...' : 'Xác nhận sửa lệnh'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

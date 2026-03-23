@@ -46,12 +46,12 @@
 
 ---
 
-## ❌ Module 3 — OMS (5/8)
+## ❌ Module 3 — OMS (6/8)
 
 - [x] **OMS-1** Order Model & Enums
 - [x] **OMS-2** Đặt lệnh (Place Order)
 - [x] **OMS-3** Hủy lệnh (Cancel Order)
-- [ ] **OMS-4** Sửa lệnh (Modify Order)
+- [x] **OMS-4** Sửa lệnh (Modify Order)
 - [x] **OMS-5** Sổ lệnh (Order Book)
 - [x] **OMS-6** Lịch sử lệnh (My Orders)
 - [ ] **OMS-7** Chi tiết lệnh
@@ -115,4 +115,4 @@
 
 ---
 
-> **Tổng: 32 đã xong / 36 cần làm = 68 task**
+> **Tổng: 33 đã xong / 35 cần làm = 68 task**

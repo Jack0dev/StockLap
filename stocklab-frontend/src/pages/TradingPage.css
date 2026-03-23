@@ -23,6 +23,12 @@
 
 .balance-display {
   display: flex;
+  gap: 24px;
+  align-items: flex-end;
+}
+
+.balance-item {
+  display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
@@ -36,10 +42,15 @@
 }
 
 .balance-value {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 700;
-  color: var(--success);
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
+}
+
+.balance-value.available {
+  color: var(--success);
+  font-size: 1.25rem;
 }
 
 /* Message */
@@ -476,6 +487,59 @@
   font-size: 0.8125rem;
   margin-top: 12px;
   font-weight: 500;
+}
+
+/* OTP Section */
+.otp-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.otp-row {
+  display: flex;
+  gap: 8px;
+}
+
+.otp-input {
+  flex: 1;
+  letter-spacing: 4px;
+  font-weight: 700;
+  text-align: center;
+  font-size: 1.125rem !important;
+}
+
+.otp-send-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.otp-send-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.otp-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.otp-send-btn.sent {
+  background: var(--success);
+}
+
+.otp-hint {
+  margin-top: 6px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
 }
 
 /* Sidebar */

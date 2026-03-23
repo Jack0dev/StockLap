@@ -81,7 +81,24 @@ export const orderAPI = {
   },
   getOrderDetail: (id) => api.get(`/orders/${id}`),
   cancelOrder: (id) => api.put(`/orders/${id}/cancel`),
+  modifyOrder: (id, data) => api.put(`/orders/${id}/modify`, data),
   getOrderBook: (ticker) => api.get(`/orders/book/${ticker}`),
+};
+
+// ===== OTP APIs =====
+export const otpAPI = {
+  sendOtp: () => api.post('/otp/send'),
+};
+
+// ===== Conditional Order APIs =====
+export const conditionalOrderAPI = {
+  placeOrder: (data) => api.post('/conditional-orders', data),
+  getMyOrders: (page = 0, size = 20, status = '') => {
+    const params = { page, size };
+    if (status) params.status = status;
+    return api.get('/conditional-orders', { params });
+  },
+  cancelOrder: (id) => api.put(`/conditional-orders/${id}/cancel`),
 };
 
 // ===== Watchlist APIs =====

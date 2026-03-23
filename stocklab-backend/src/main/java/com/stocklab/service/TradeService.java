@@ -46,11 +46,12 @@ public class TradeService {
         BigDecimal price = stock.getCurrentPrice();
         BigDecimal totalAmount = price.multiply(BigDecimal.valueOf(request.getQuantity()));
 
-        // 4. Validate số dư
-        if (user.getBalance().compareTo(totalAmount) < 0) {
-            return ApiResponse.error("Số dư không đủ! Cần " +
-                    formatCurrency(totalAmount) + " VND, hiện có " +
-                    formatCurrency(user.getBalance()) + " VND");
+        // 4. Validate số dư khả dụng (trừ tiền bị lock cho lệnh đang chờ)
+        BigDecimal availableBalance = user.getAvailableBalance();
+        if (availableBalance.compareTo(totalAmount) < 0) {
+            return ApiResponse.error("Số dư khả dụng không đủ! Cần " +
+                    formatCurrency(totalAmount) + " VND, khả dụng: " +
+                    formatCurrency(availableBalance) + " VND");
         }
 
         // 5. Trừ balance
@@ -132,10 +133,10 @@ public class TradeService {
         // 3. Kiểm tra Portfolio
         Portfolio portfolio = portfolioRepository.findByUserIdAndStockId(user.getId(), stock.getId())
                 .orElse(null);
-        if (portfolio == null || portfolio.getQuantity() < request.getQuantity()) {
-            int holding = (portfolio != null) ? portfolio.getQuantity() : 0;
-            return ApiResponse.error("Không đủ cổ phiếu để bán! Đang giữ " +
-                    holding + " CP " + stock.getTicker());
+        if (portfolio == null || portfolio.getAvailableQuantity() < request.getQuantity()) {
+            int holding = (portfolio != null) ? portfolio.getAvailableQuantity() : 0;
+            return ApiResponse.error("Không đủ cổ phiếu khả dụng để bán! Đang có " +
+                    holding + " CP " + stock.getTicker() + " khả dụng");
         }
 
         // 4. Tính tổng tiền

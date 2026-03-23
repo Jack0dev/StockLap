@@ -33,6 +33,8 @@ class OrderServiceTest {
     private OrderRepository orderRepository;
     @Mock
     private PortfolioRepository portfolioRepository;
+    @Mock
+    private OtpService otpService;
 
     @InjectMocks
     private OrderService orderService;
@@ -43,6 +45,9 @@ class OrderServiceTest {
 
     @BeforeEach
     void setUp() {
+        // OTP mock: luôn trả true
+        lenient().when(otpService.verifyOtp(any(), any())).thenReturn(true);
+
         testUser = User.builder()
                 .id(1L)
                 .username("testuser")
@@ -82,7 +87,7 @@ class OrderServiceTest {
 
             OrderRequest request = OrderRequest.builder()
                     .ticker("VNM").side("BUY").orderType("LIMIT")
-                    .quantity(10).price(new BigDecimal("85000")).build();
+                    .quantity(10).price(new BigDecimal("85000")).otpCode("123456").build();
 
             ApiResponse<OrderResponse> result = orderService.placeOrder("unknown", request);
 
@@ -98,7 +103,7 @@ class OrderServiceTest {
 
             OrderRequest request = OrderRequest.builder()
                     .ticker("INVALID").side("BUY").orderType("LIMIT")
-                    .quantity(10).price(new BigDecimal("85000")).build();
+                    .quantity(10).price(new BigDecimal("85000")).otpCode("123456").build();
 
             ApiResponse<OrderResponse> result = orderService.placeOrder("testuser", request);
 
@@ -114,7 +119,7 @@ class OrderServiceTest {
 
             OrderRequest request = OrderRequest.builder()
                     .ticker("VNM").side("SHORT").orderType("LIMIT")
-                    .quantity(10).price(new BigDecimal("85000")).build();
+                    .quantity(10).price(new BigDecimal("85000")).otpCode("123456").build();
 
             ApiResponse<OrderResponse> result = orderService.placeOrder("testuser", request);
 
@@ -130,7 +135,7 @@ class OrderServiceTest {
 
             OrderRequest request = OrderRequest.builder()
                     .ticker("VNM").side("BUY").orderType("STOP_LOSS")
-                    .quantity(10).price(new BigDecimal("85000")).build();
+                    .quantity(10).price(new BigDecimal("85000")).otpCode("123456").build();
 
             ApiResponse<OrderResponse> result = orderService.placeOrder("testuser", request);
 
@@ -146,7 +151,7 @@ class OrderServiceTest {
 
             OrderRequest request = OrderRequest.builder()
                     .ticker("VNM").side("BUY").orderType("LIMIT")
-                    .quantity(10).price(null).build();
+                    .quantity(10).price(null).otpCode("123456").build();
 
             ApiResponse<OrderResponse> result = orderService.placeOrder("testuser", request);
 
@@ -174,7 +179,7 @@ class OrderServiceTest {
 
             OrderRequest request = OrderRequest.builder()
                     .ticker("VNM").side("BUY").orderType("LIMIT")
-                    .quantity(10).price(new BigDecimal("85000.00")).build();
+                    .quantity(10).price(new BigDecimal("85000.00")).otpCode("123456").build();
 
             ApiResponse<OrderResponse> result = orderService.placeOrder("testuser", request);
 
@@ -204,7 +209,7 @@ class OrderServiceTest {
 
             OrderRequest request = OrderRequest.builder()
                     .ticker("VNM").side("BUY").orderType("MARKET")
-                    .quantity(10).build();
+                    .quantity(10).otpCode("123456").build();
 
             ApiResponse<OrderResponse> result = orderService.placeOrder("testuser", request);
 
@@ -223,7 +228,7 @@ class OrderServiceTest {
 
             OrderRequest request = OrderRequest.builder()
                     .ticker("VNM").side("BUY").orderType("LIMIT")
-                    .quantity(100).price(new BigDecimal("85000.00")).build(); // Cần 8.5 triệu
+                    .quantity(100).price(new BigDecimal("85000.00")).otpCode("123456").build(); // Cần 8.5 triệu
 
             ApiResponse<OrderResponse> result = orderService.placeOrder("testuser", request);
 
@@ -242,7 +247,7 @@ class OrderServiceTest {
 
             OrderRequest request = OrderRequest.builder()
                     .ticker("VNM").side("BUY").orderType("LIMIT")
-                    .quantity(10).price(new BigDecimal("85000.00")).build(); // Cần 850k > 500k available
+                    .quantity(10).price(new BigDecimal("85000.00")).otpCode("123456").build(); // Cần 850k > 500k available
 
             ApiResponse<OrderResponse> result = orderService.placeOrder("testuser", request);
 
@@ -271,7 +276,7 @@ class OrderServiceTest {
 
             OrderRequest request = OrderRequest.builder()
                     .ticker("VNM").side("SELL").orderType("LIMIT")
-                    .quantity(50).price(new BigDecimal("90000.00")).build();
+                    .quantity(50).price(new BigDecimal("90000.00")).otpCode("123456").build();
 
             ApiResponse<OrderResponse> result = orderService.placeOrder("testuser", request);
 
@@ -293,7 +298,7 @@ class OrderServiceTest {
 
             OrderRequest request = OrderRequest.builder()
                     .ticker("VNM").side("SELL").orderType("LIMIT")
-                    .quantity(10).price(new BigDecimal("90000.00")).build();
+                    .quantity(10).price(new BigDecimal("90000.00")).otpCode("123456").build();
 
             ApiResponse<OrderResponse> result = orderService.placeOrder("testuser", request);
 
@@ -311,7 +316,7 @@ class OrderServiceTest {
 
             OrderRequest request = OrderRequest.builder()
                     .ticker("VNM").side("SELL").orderType("LIMIT")
-                    .quantity(50).price(new BigDecimal("90000.00")).build(); // Cần 50 > 20 available
+                    .quantity(50).price(new BigDecimal("90000.00")).otpCode("123456").build(); // Cần 50 > 20 available
 
             ApiResponse<OrderResponse> result = orderService.placeOrder("testuser", request);
 

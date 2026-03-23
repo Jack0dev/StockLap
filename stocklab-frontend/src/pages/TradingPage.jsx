@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { stockAPI, tradeAPI, orderAPI, userAPI } from '../api/api';
+import { stockAPI, tradeAPI, orderAPI, userAPI, otpAPI } from '../api/api';
 import './TradingPage.css';
 
 export default function TradingPage() {
@@ -14,10 +14,14 @@ export default function TradingPage() {
   const [selectedStock, setSelectedStock] = useState(null);
   const [portfolio, setPortfolio] = useState([]);
   const [balance, setBalance] = useState(0);
+  const [lockedBalance, setLockedBalance] = useState(0);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [recentOrders, setRecentOrders] = useState([]);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
 
   useEffect(() => {
     fetchBalance();
@@ -36,6 +40,7 @@ export default function TradingPage() {
       const res = await userAPI.getProfile();
       if (res.data.success) {
         setBalance(res.data.data.balance);
+        setLockedBalance(res.data.data.lockedBalance || 0);
       }
     } catch (err) {
       console.error('Lỗi tải số dư:', err);
@@ -114,6 +119,8 @@ export default function TradingPage() {
   // Tính giá sử dụng cho hiển thị
   const effectivePrice = price ? Number(price) : (selectedStock?.currentPrice || 0);
 
+  const availableBalance = balance - lockedBalance;
+
   const totalAmount = selectedStock && quantity
     ? effectivePrice * Number(quantity)
     : 0;
@@ -123,9 +130,24 @@ export default function TradingPage() {
   const canTrade = () => {
     if (!selectedStock || !quantity || Number(quantity) <= 0) return false;
     if (!price || Number(price) <= 0) return false;
-    if (activeTab === 'BUY') return balance >= totalAmount;
+    if (activeTab === 'BUY') return availableBalance >= totalAmount;
     if (activeTab === 'SELL') return holdingQty >= Number(quantity);
     return false;
+  };
+
+  const handleSendOtp = async () => {
+    setOtpLoading(true);
+    try {
+      const res = await otpAPI.sendOtp();
+      if (res.data.success) {
+        setOtpSent(true);
+        setMessage({ type: 'success', text: 'Đã gửi mã OTP! (Mock: 123456)' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Lỗi gửi OTP' });
+    } finally {
+      setOtpLoading(false);
+    }
   };
 
   const handlePlaceOrder = async () => {
@@ -146,11 +168,15 @@ export default function TradingPage() {
         data.price = Number(price);
       }
 
+      data.otpCode = otpCode;
+
       const res = await orderAPI.placeOrder(data);
 
       if (res.data.success) {
         setMessage({ type: 'success', text: res.data.message });
         resetForm();
+        setOtpCode('');
+        setOtpSent(false);
         fetchBalance();
         fetchPortfolio();
         fetchRecentOrders();
@@ -192,8 +218,14 @@ export default function TradingPage() {
       <div className="trading-header">
         <h2>📊 Đặt lệnh</h2>
         <div className="balance-display">
-          <span className="balance-label">Số dư khả dụng</span>
-          <span className="balance-value">{formatPrice(balance)} VND</span>
+          <div className="balance-item">
+            <span className="balance-label">Tổng tài sản</span>
+            <span className="balance-value">{formatPrice(balance)} VND</span>
+          </div>
+          <div className="balance-item">
+            <span className="balance-label">Số dư khả dụng</span>
+            <span className="balance-value available">{formatPrice(availableBalance)} VND</span>
+          </div>
         </div>
       </div>
 
@@ -397,19 +429,45 @@ export default function TradingPage() {
                 </div>
                 {activeTab === 'BUY' && (
                   <div className="summary-row">
-                    <span>Số dư sau GD</span>
-                    <span className={balance - totalAmount < 0 ? 'text-danger' : ''}>
-                      {formatPrice(balance - totalAmount)} VND
-                    </span>
-                  </div>
+                  <span>Số dư sau GD</span>
+                  <span className={availableBalance - totalAmount < 0 ? 'text-danger' : ''}>
+                    {formatPrice(availableBalance - totalAmount)} VND
+                  </span>
+                </div>
                 )}
               </div>
             )}
 
+            {/* OTP Verification */}
+            <div className="form-group otp-section">
+              <label>🔐 Xác thực OTP</label>
+              <div className="otp-row">
+                <input
+                  type="text"
+                  className="form-input otp-input"
+                  placeholder="Nhập mã OTP"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  maxLength={6}
+                />
+                <button
+                  type="button"
+                  className={`otp-send-btn ${otpSent ? 'sent' : ''}`}
+                  onClick={handleSendOtp}
+                  disabled={otpLoading}
+                >
+                  {otpLoading ? '...' : otpSent ? '✓ Đã gửi' : 'Gửi mã'}
+                </button>
+              </div>
+              {otpSent && (
+                <div className="otp-hint">💡 Mock OTP: <strong>123456</strong></div>
+              )}
+            </div>
+
             {/* Trade Button */}
             <button
               className={`trade-btn ${activeTab === 'BUY' ? 'buy' : 'sell'}`}
-              disabled={!canTrade() || loading}
+              disabled={!canTrade() || loading || !otpCode}
               onClick={handlePlaceOrder}
             >
               {loading ? (
@@ -421,7 +479,7 @@ export default function TradingPage() {
               )}
             </button>
 
-            {activeTab === 'BUY' && selectedStock && quantity > 0 && balance < totalAmount && (
+            {activeTab === 'BUY' && selectedStock && quantity > 0 && availableBalance < totalAmount && (
               <div className="insufficient-msg">⚠️ Số dư không đủ để thực hiện giao dịch</div>
             )}
           </div>
