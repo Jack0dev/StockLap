@@ -21,13 +21,19 @@ public class OrderService {
     private final StockRepository stockRepository;
     private final OrderRepository orderRepository;
     private final PortfolioRepository portfolioRepository;
+    private final OtpService otpService;
 
     /**
      * Đặt lệnh mua/bán
      */
     @Transactional
     public ApiResponse<OrderResponse> placeOrder(String username, OrderRequest request) {
-        // 1. Tìm user
+        // 1. Xác thực OTP
+        if (!otpService.verifyOtp(username, request.getOtpCode())) {
+            return ApiResponse.error("Mã OTP không hợp lệ hoặc đã hết hạn!");
+        }
+
+        // 2. Tìm user
         User user = userRepository.findByUsername(username).orElse(null);
         if (user == null) {
             return ApiResponse.error("Không tìm thấy người dùng");
@@ -253,6 +259,109 @@ public class OrderService {
                 "Đã hủy lệnh #" + orderId + " thành công! Hoàn " + remainingQty +
                         (order.getSide() == OrderSide.BUY ? " phần tiền đã lock" : " CP đã lock"),
                 toOrderResponse(order));
+    }
+
+    /**
+     * Sửa lệnh — hủy lệnh cũ + đặt lệnh mới với giá/số lượng mới
+     */
+    @Transactional
+    public ApiResponse<OrderResponse> modifyOrder(String username, Long orderId, ModifyOrderRequest request) {
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) {
+            return ApiResponse.error("Không tìm thấy người dùng");
+        }
+
+        Order oldOrder = orderRepository.findById(orderId).orElse(null);
+        if (oldOrder == null) {
+            return ApiResponse.error("Không tìm thấy lệnh #" + orderId);
+        }
+
+        // Chỉ cho phép sửa lệnh của chính mình
+        if (!oldOrder.getUser().getId().equals(user.getId())) {
+            return ApiResponse.error("Bạn không có quyền sửa lệnh này");
+        }
+
+        // Chỉ sửa được PENDING hoặc PARTIAL
+        if (!oldOrder.isCancellable()) {
+            return ApiResponse.error("Không thể sửa lệnh ở trạng thái: " + oldOrder.getStatus());
+        }
+
+        // Validate input
+        if (request.getQuantity() == null || request.getQuantity() <= 0) {
+            return ApiResponse.error("Số lượng phải lớn hơn 0");
+        }
+        if (request.getPrice() == null || request.getPrice() <= 0) {
+            return ApiResponse.error("Giá phải lớn hơn 0");
+        }
+
+        // --- Bước 1: Hủy lệnh cũ (unlock tài sản) ---
+        int remainingQty = oldOrder.getRemainingQuantity();
+
+        if (oldOrder.getSide() == OrderSide.BUY) {
+            BigDecimal refund = oldOrder.getPrice().multiply(BigDecimal.valueOf(remainingQty));
+            user.setLockedBalance(user.getLockedBalance().subtract(refund));
+        } else {
+            Portfolio portfolio = portfolioRepository
+                    .findByUserIdAndStockId(user.getId(), oldOrder.getStock().getId())
+                    .orElse(null);
+            if (portfolio != null) {
+                portfolio.setLockedQuantity(portfolio.getLockedQuantity() - remainingQty);
+                portfolioRepository.save(portfolio);
+            }
+        }
+
+        oldOrder.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(oldOrder);
+
+        // --- Bước 2: Đặt lệnh mới ---
+        BigDecimal newPrice = BigDecimal.valueOf(request.getPrice());
+        int newQuantity = request.getQuantity();
+
+        // Lock tài sản mới
+        if (oldOrder.getSide() == OrderSide.BUY) {
+            BigDecimal lockAmount = newPrice.multiply(BigDecimal.valueOf(newQuantity));
+            BigDecimal available = user.getBalance().subtract(user.getLockedBalance());
+            if (available.compareTo(lockAmount) < 0) {
+                // Rollback cancel — unlock đã xảy ra nên phải lock lại
+                // Nhưng vì đã cancel rồi, trả error cho user biết
+                userRepository.save(user);
+                return ApiResponse.error("Không đủ số dư để đặt lệnh mới. Lệnh cũ đã được hủy. " +
+                        "Số dư khả dụng: " + formatCurrency(available) + " VND, cần: " + formatCurrency(lockAmount) + " VND");
+            }
+            user.setLockedBalance(user.getLockedBalance().add(lockAmount));
+        } else {
+            Portfolio portfolio = portfolioRepository
+                    .findByUserIdAndStockId(user.getId(), oldOrder.getStock().getId())
+                    .orElse(null);
+            int availableQty = (portfolio != null)
+                    ? portfolio.getQuantity() - portfolio.getLockedQuantity()
+                    : 0;
+            if (availableQty < newQuantity) {
+                userRepository.save(user);
+                return ApiResponse.error("Không đủ CP để đặt lệnh bán mới. Lệnh cũ đã được hủy. " +
+                        "Khả dụng: " + availableQty + " CP, cần: " + newQuantity + " CP");
+            }
+            portfolio.setLockedQuantity(portfolio.getLockedQuantity() + newQuantity);
+            portfolioRepository.save(portfolio);
+        }
+
+        userRepository.save(user);
+
+        // Tạo lệnh mới
+        Order newOrder = new Order();
+        newOrder.setUser(user);
+        newOrder.setStock(oldOrder.getStock());
+        newOrder.setSide(oldOrder.getSide());
+        newOrder.setOrderType(oldOrder.getOrderType());
+        newOrder.setQuantity(newQuantity);
+        newOrder.setFilledQuantity(0);
+        newOrder.setPrice(newPrice);
+        newOrder.setStatus(OrderStatus.PENDING);
+        orderRepository.save(newOrder);
+
+        return ApiResponse.success(
+                "Đã sửa lệnh thành công! Lệnh cũ #" + orderId + " → hủy, lệnh mới #" + newOrder.getId(),
+                toOrderResponse(newOrder));
     }
 
     /**

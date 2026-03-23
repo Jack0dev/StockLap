@@ -121,7 +121,7 @@ Refactor toàn bộ hệ thống giao dịch sang đặt lệnh.
 | OMS-1 | **Order Model & Enums** | Entity `Order` — user, stock, type (BUY/SELL), orderType (MARKET/LIMIT), quantity, filledQty, price, status, createdAt | — | ✅ |
 | OMS-2 | **Đặt lệnh (Place Order)** | `OrderService.placeOrder()` — validate số dư/CP khả dụng, lock tiền (BUY) hoặc lock CP (SELL), status = PENDING | Form đặt lệnh — chọn BUY/SELL, MARKET/LIMIT, nhập giá (LIMIT), số lượng. Hiển thị tổng tiền dự kiến, số dư sau GD | ✅ |
 | OMS-3 | **Hủy lệnh (Cancel Order)** | `OrderService.cancelOrder()` — chỉ hủy lệnh PENDING/PARTIAL, mở khóa tiền/CP đã lock | Nút hủy lệnh trên sổ lệnh, xác nhận trước khi hủy | ✅ |
-| OMS-4 | **Sửa lệnh (Modify Order)** | `OrderService.modifyOrder()` — hủy lệnh cũ + tạo lệnh mới (giá/số lượng mới) | Form sửa lệnh — cho phép thay đổi giá/số lượng | ❌ |
+| OMS-4 | **Sửa lệnh (Modify Order)** | `OrderService.modifyOrder()` — hủy lệnh cũ + tạo lệnh mới (giá/số lượng mới) | Form sửa lệnh — cho phép thay đổi giá/số lượng | ✅ |
 | OMS-5 | **Sổ lệnh (Order Book)** | `OrderController.getOrderBook(ticker)` — tất cả lệnh BUY/SELL đang PENDING cho 1 CP, group theo mức giá | Component OrderBook — bảng 2 cột: bên mua (xanh) / bên bán (đỏ), hiển thị giá × khối lượng | ✅ |
 | OMS-6 | **Lịch sử lệnh (My Orders)** | `OrderController.getMyOrders()` — tất cả lệnh của user, filter theo status/ticker/ngày | Trang lịch sử lệnh — bảng danh sách lệnh + trạng thái (badge màu), nút hủy cho lệnh PENDING | ✅ |
 | OMS-7 | **Chi tiết lệnh** | `OrderController.getOrderDetail(id)` — thông tin chi tiết 1 lệnh + các match đã xảy ra | Modal chi tiết — timeline trạng thái, danh sách match | ❌ |
