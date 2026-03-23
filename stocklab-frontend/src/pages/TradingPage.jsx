@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { stockAPI, tradeAPI, userAPI } from '../api/api';
+import { stockAPI, tradeAPI, orderAPI, userAPI } from '../api/api';
 import './TradingPage.css';
 
 export default function TradingPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('BUY');
+  const [orderType, setOrderType] = useState('MARKET');
   const [ticker, setTicker] = useState('');
   const [quantity, setQuantity] = useState('');
+  const [price, setPrice] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedStock, setSelectedStock] = useState(null);
   const [portfolio, setPortfolio] = useState([]);
@@ -15,10 +17,12 @@ export default function TradingPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [recentOrders, setRecentOrders] = useState([]);
 
   useEffect(() => {
     fetchBalance();
     fetchPortfolio();
+    fetchRecentOrders();
   }, []);
 
   useEffect(() => {
@@ -49,6 +53,17 @@ export default function TradingPage() {
     }
   };
 
+  const fetchRecentOrders = async () => {
+    try {
+      const res = await orderAPI.getMyOrders(0, 5);
+      if (res.data.success) {
+        setRecentOrders(res.data.data.content || []);
+      }
+    } catch (err) {
+      console.error('Lỗi tải lệnh:', err);
+    }
+  };
+
   // Search stocks with debounce
   useEffect(() => {
     if (activeTab === 'BUY' && ticker.length >= 1) {
@@ -73,6 +88,7 @@ export default function TradingPage() {
   const handleSelectStock = (stock) => {
     setSelectedStock(stock);
     setTicker(stock.ticker);
+    setPrice(String(stock.currentPrice));
     setShowDropdown(false);
     setSearchResults([]);
   };
@@ -85,53 +101,76 @@ export default function TradingPage() {
       exchange: item.exchange,
     });
     setTicker(item.ticker);
+    setPrice(String(item.currentPrice));
   };
 
+  const resetForm = () => {
+    setSelectedStock(null);
+    setTicker('');
+    setQuantity('');
+    setPrice('');
+    setOrderType('MARKET');
+  };
+
+  // Tính giá sử dụng cho hiển thị
+  const effectivePrice = orderType === 'LIMIT' && price
+    ? Number(price)
+    : (selectedStock?.currentPrice || 0);
+
   const totalAmount = selectedStock && quantity
-    ? Number(selectedStock.currentPrice) * Number(quantity)
+    ? effectivePrice * Number(quantity)
     : 0;
 
   const holdingQty = portfolio.find(p => p.ticker === selectedStock?.ticker)?.quantity || 0;
 
   const canTrade = () => {
     if (!selectedStock || !quantity || Number(quantity) <= 0) return false;
+    if (orderType === 'LIMIT' && (!price || Number(price) <= 0)) return false;
     if (activeTab === 'BUY') return balance >= totalAmount;
     if (activeTab === 'SELL') return holdingQty >= Number(quantity);
     return false;
   };
 
-  const handleTrade = async () => {
+  const handlePlaceOrder = async () => {
     if (!canTrade()) return;
     setLoading(true);
     setMessage(null);
 
     try {
-      const data = { ticker: selectedStock.ticker, quantity: Number(quantity) };
-      const res = activeTab === 'BUY'
-        ? await tradeAPI.buy(data)
-        : await tradeAPI.sell(data);
+      const data = {
+        ticker: selectedStock.ticker,
+        side: activeTab,
+        orderType: orderType,
+        quantity: Number(quantity),
+      };
+
+      // Chỉ gửi price khi LIMIT
+      if (orderType === 'LIMIT') {
+        data.price = Number(price);
+      }
+
+      const res = await orderAPI.placeOrder(data);
 
       if (res.data.success) {
         setMessage({ type: 'success', text: res.data.message });
-        setBalance(res.data.data.balanceAfter);
-        setQuantity('');
-        setSelectedStock(null);
-        setTicker('');
+        resetForm();
+        fetchBalance();
         fetchPortfolio();
+        fetchRecentOrders();
       } else {
         setMessage({ type: 'error', text: res.data.message });
       }
     } catch (err) {
-      const errMsg = err.response?.data?.message || 'Có lỗi xảy ra khi giao dịch';
+      const errMsg = err.response?.data?.message || 'Có lỗi xảy ra khi đặt lệnh';
       setMessage({ type: 'error', text: errMsg });
     } finally {
       setLoading(false);
     }
   };
 
-  const formatPrice = (price) => {
-    if (!price) return '0';
-    return Number(price).toLocaleString('vi-VN');
+  const formatPrice = (p) => {
+    if (!p) return '0';
+    return Number(p).toLocaleString('vi-VN');
   };
 
   const getTickerColor = (t) => {
@@ -141,10 +180,20 @@ export default function TradingPage() {
     return colors[Math.abs(hash) % colors.length];
   };
 
+  const getStatusLabel = (status) => {
+    const map = { PENDING: 'Chờ khớp', PARTIAL: 'Khớp 1 phần', FILLED: 'Đã khớp', CANCELLED: 'Đã hủy', REJECTED: 'Bị từ chối' };
+    return map[status] || status;
+  };
+
+  const getStatusClass = (status) => {
+    const map = { PENDING: 'pending', PARTIAL: 'partial', FILLED: 'filled', CANCELLED: 'cancelled', REJECTED: 'rejected' };
+    return map[status] || '';
+  };
+
   return (
     <div className="trading-page fade-in">
       <div className="trading-header">
-        <h2>📊 Giao dịch</h2>
+        <h2>📊 Đặt lệnh</h2>
         <div className="balance-display">
           <span className="balance-label">Số dư khả dụng</span>
           <span className="balance-value">{formatPrice(balance)} VND</span>
@@ -167,19 +216,40 @@ export default function TradingPage() {
           <div className="trade-tabs">
             <button
               className={`trade-tab ${activeTab === 'BUY' ? 'active buy' : ''}`}
-              onClick={() => { setActiveTab('BUY'); setSelectedStock(null); setTicker(''); setQuantity(''); }}
+              onClick={() => { setActiveTab('BUY'); resetForm(); }}
             >
               MUA
             </button>
             <button
               className={`trade-tab ${activeTab === 'SELL' ? 'active sell' : ''}`}
-              onClick={() => { setActiveTab('SELL'); setSelectedStock(null); setTicker(''); setQuantity(''); }}
+              onClick={() => { setActiveTab('SELL'); resetForm(); }}
             >
               BÁN
             </button>
           </div>
 
           <div className="form-body">
+            {/* Order Type Selector */}
+            <div className="form-group">
+              <label>Loại lệnh</label>
+              <div className="order-type-selector">
+                <button
+                  className={`ot-btn ${orderType === 'MARKET' ? 'active' : ''}`}
+                  onClick={() => setOrderType('MARKET')}
+                >
+                  <span className="ot-icon">⚡</span>
+                  <span>Thường</span>
+                </button>
+                <button
+                  className={`ot-btn ${orderType === 'LIMIT' ? 'active' : ''}`}
+                  onClick={() => setOrderType('LIMIT')}
+                >
+                  <span className="ot-icon">📌</span>
+                  <span>Giới hạn</span>
+                </button>
+              </div>
+            </div>
+
             {/* Stock Picker - BUY */}
             {activeTab === 'BUY' && (
               <div className="form-group">
@@ -279,6 +349,33 @@ export default function TradingPage() {
               </div>
             )}
 
+            {/* Price Input (LIMIT only) */}
+            {orderType === 'LIMIT' && (
+              <div className="form-group">
+                <label>Giá đặt (VND)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="100"
+                  placeholder="Nhập giá đặt lệnh"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  className="form-input"
+                />
+                {selectedStock && (
+                  <div className="price-hint">
+                    Giá hiện tại: <strong>{formatPrice(selectedStock.currentPrice)} VND</strong>
+                    <button
+                      className="price-fill-btn"
+                      onClick={() => setPrice(String(selectedStock.currentPrice))}
+                    >
+                      Dùng giá hiện tại
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Quantity */}
             <div className="form-group">
               <label>Số lượng</label>
@@ -307,8 +404,14 @@ export default function TradingPage() {
             {selectedStock && quantity > 0 && (
               <div className="trade-summary">
                 <div className="summary-row">
-                  <span>Giá hiện tại</span>
-                  <span>{formatPrice(selectedStock.currentPrice)} VND</span>
+                  <span>Loại lệnh</span>
+                  <span className="order-type-badge">
+                    {orderType === 'MARKET' ? '⚡ Thị trường' : '📌 Giới hạn'}
+                  </span>
+                </div>
+                <div className="summary-row">
+                  <span>{orderType === 'LIMIT' ? 'Giá đặt' : 'Giá hiện tại'}</span>
+                  <span>{formatPrice(effectivePrice)} VND</span>
                 </div>
                 <div className="summary-row">
                   <span>Số lượng</span>
@@ -316,7 +419,7 @@ export default function TradingPage() {
                 </div>
                 <div className="summary-divider"></div>
                 <div className="summary-row total">
-                  <span>Tổng tiền</span>
+                  <span>Tổng tiền {orderType === 'LIMIT' ? '(ước tính)' : ''}</span>
                   <span className={activeTab === 'BUY' ? 'text-danger' : 'text-success'}>
                     {activeTab === 'BUY' ? '-' : '+'}{formatPrice(totalAmount)} VND
                   </span>
@@ -336,14 +439,14 @@ export default function TradingPage() {
             <button
               className={`trade-btn ${activeTab === 'BUY' ? 'buy' : 'sell'}`}
               disabled={!canTrade() || loading}
-              onClick={handleTrade}
+              onClick={handlePlaceOrder}
             >
               {loading ? (
                 <span className="btn-loading">Đang xử lý...</span>
               ) : activeTab === 'BUY' ? (
-                `MUA ${selectedStock?.ticker || ''}`
+                `ĐẶT LỆNH MUA ${selectedStock?.ticker || ''}`
               ) : (
-                `BÁN ${selectedStock?.ticker || ''}`
+                `ĐẶT LỆNH BÁN ${selectedStock?.ticker || ''}`
               )}
             </button>
 
@@ -353,10 +456,40 @@ export default function TradingPage() {
           </div>
         </div>
 
-        {/* Right side: Portfolio Summary */}
+        {/* Right side */}
         <div className="trading-sidebar">
+          {/* Recent Orders */}
           <div className="sidebar-card">
-            <h3>📋 Danh mục hiện tại</h3>
+            <h3>📋 Lệnh gần đây</h3>
+            {recentOrders.length === 0 ? (
+              <div className="sidebar-empty">Chưa có lệnh nào</div>
+            ) : (
+              <div className="recent-orders-list">
+                {recentOrders.map(order => (
+                  <div key={order.id} className="ro-item">
+                    <div className="ro-left">
+                      <div className={`ro-side ${order.side === 'BUY' ? 'buy' : 'sell'}`}>
+                        {order.side === 'BUY' ? 'M' : 'B'}
+                      </div>
+                      <div>
+                        <div className="ro-ticker">{order.ticker}</div>
+                        <div className="ro-detail">
+                          {order.filledQuantity}/{order.quantity} CP · {formatPrice(order.price)}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={`ro-status ${getStatusClass(order.status)}`}>
+                      {getStatusLabel(order.status)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Portfolio Summary */}
+          <div className="sidebar-card" style={{ marginTop: '16px' }}>
+            <h3>💼 Danh mục hiện tại</h3>
             {portfolio.length === 0 ? (
               <div className="sidebar-empty">Chưa có cổ phiếu nào</div>
             ) : (

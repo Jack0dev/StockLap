@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +38,63 @@ public class DataSeeder implements CommandLineRunner {
         seedAdminUser();
         unlockAllExistingUsers();
 
+        seedUsers();
+        seedStocks();
+    }
+
+    private void seedUsers() {
+        if (userRepository.count() > 0) {
+            log.info("👤 Database đã có dữ liệu user, bỏ qua seeding user.");
+            return;
+        }
+
+        log.info("🌱 Bắt đầu seed dữ liệu user...");
+
+        // 1 Admin
+        User admin = User.builder()
+                .username("admin")
+                .email("admin@stocklab.vn")
+                .password(passwordEncoder.encode("admin123"))
+                .fullName("Admin StockLab")
+                .phone("0901000001")
+                .role(Role.ADMIN)
+                .balance(new BigDecimal("100000000.00"))
+                .build();
+        userRepository.save(admin);
+        log.info("  ✅ Admin: {} ({})", admin.getUsername(), admin.getEmail());
+
+        // 1 Manager
+        User manager = User.builder()
+                .username("manager")
+                .email("manager@stocklab.vn")
+                .password(passwordEncoder.encode("manager123"))
+                .fullName("Manager StockLab")
+                .phone("0901000002")
+                .role(Role.MANAGER)
+                .balance(new BigDecimal("50000000.00"))
+                .build();
+        userRepository.save(manager);
+        log.info("  ✅ Manager: {} ({})", manager.getUsername(), manager.getEmail());
+
+        // 3 Regular Users
+        for (int i = 1; i <= 3; i++) {
+            User user = User.builder()
+                    .username("user" + i)
+                    .email("user" + i + "@stocklab.vn")
+                    .password(passwordEncoder.encode("user123"))
+                    .fullName("Người dùng " + i)
+                    .phone("090100000" + (i + 2))
+                    .role(Role.USER)
+                    .balance(new BigDecimal("10000000.00"))
+                    .build();
+            userRepository.save(user);
+            log.info("  ✅ User: {} ({})", user.getUsername(), user.getEmail());
+        }
+
+        log.info("🎉 Seed user hoàn tất! Đã tạo 5 tài khoản.");
+    }
+
+    private void seedStocks() {
         if (stockRepository.count() > 0) {
             log.info("📊 Database đã có dữ liệu cổ phiếu, bỏ qua seeding.");
             return;
@@ -81,7 +139,7 @@ public class DataSeeder implements CommandLineRunner {
                     stock.getCurrentPrice(), history.size());
         }
 
-        log.info("🎉 Seed hoàn tất! Đã tạo {} cổ phiếu.", seedData.size());
+        log.info("🎉 Seed cổ phiếu hoàn tất! Đã tạo {} cổ phiếu.", seedData.size());
     }
 
     private Stock createStock(StockSeedData data, Random random) {
