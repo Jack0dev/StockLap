@@ -66,7 +66,6 @@ function App() {
         <Route element={<AppLayout />}>
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />
-          <Route path="/admin/stocks" element={<AdminStocksPage />} />
         </Route>
       </Route>
 
