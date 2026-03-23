@@ -34,9 +34,20 @@ public class Portfolio {
     @Column(nullable = false)
     private Integer quantity;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer lockedQuantity = 0; // CP bị lock cho lệnh SELL đang PENDING
+
     @Column(nullable = false, precision = 15, scale = 2)
     @Builder.Default
     private BigDecimal avgBuyPrice = BigDecimal.ZERO;
+
+    /**
+     * Số CP khả dụng = tổng số CP - CP đang lock
+     */
+    public int getAvailableQuantity() {
+        return quantity - lockedQuantity;
+    }
 
     @CreationTimestamp
     @Column(updatable = false)

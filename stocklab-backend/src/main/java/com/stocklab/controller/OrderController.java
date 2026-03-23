@@ -1,0 +1,78 @@
+package com.stocklab.controller;
+
+import com.stocklab.dto.*;
+import com.stocklab.service.OrderService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/orders")
+@RequiredArgsConstructor
+public class OrderController {
+
+    private final OrderService orderService;
+
+    /**
+     * POST /api/orders
+     * Đặt lệnh mua/bán
+     */
+    @PostMapping
+    public ResponseEntity<ApiResponse<OrderResponse>> placeOrder(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody OrderRequest request) {
+
+        ApiResponse<OrderResponse> response = orderService.placeOrder(
+                userDetails.getUsername(), request);
+
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    /**
+     * GET /api/orders?page=0&size=20&status=PENDING
+     * Danh sách lệnh của user
+     */
+    @GetMapping
+    public ResponseEntity<ApiResponse<Page<OrderResponse>>> getMyOrders(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String status) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        ApiResponse<Page<OrderResponse>> response = orderService.getMyOrders(
+                userDetails.getUsername(), pageable, status);
+
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    /**
+     * GET /api/orders/{id}
+     * Chi tiết 1 lệnh
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<OrderResponse>> getOrderDetail(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long id) {
+
+        ApiResponse<OrderResponse> response = orderService.getOrderDetail(
+                userDetails.getUsername(), id);
+
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
+}
