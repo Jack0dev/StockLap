@@ -15,6 +15,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +27,9 @@ public class UserService {
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
     private final OtpService otpService;
+
+    // Cache tạm thời thông tin đăng ký (email -> RegisterRequest)
+    private final Map<String, RegisterRequest> pendingRegistrations = new ConcurrentHashMap<>();
 
     public ApiResponse<String> register(RegisterRequest request) {
         // Kiểm tra username đã tồn tại
@@ -37,35 +42,25 @@ public class UserService {
             return ApiResponse.error("Email đã được sử dụng!");
         }
 
-        // Tạo user mới (isActive = false vì cần xác thực email)
-        User user = User.builder()
-                .username(request.getUsername())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .fullName(request.getFullName())
-                .phone(request.getPhone())
-                .role(Role.USER)
-                .isActive(false)
-                .build();
-
-        userRepository.save(user);
+        // Lưu thông tin đăng ký vào bộ nhớ tạm
+        pendingRegistrations.put(request.getEmail(), request);
 
         // Gửi OTP qua email
         try {
             otpService.sendOtp(request.getEmail());
-            return ApiResponse.success("Đăng ký thành công! Vui lòng kiểm tra email để lấy mã OTP xác thực.");
+            return ApiResponse.success("Vui lòng kiểm tra email để lấy mã OTP xác thực.");
         } catch (Exception e) {
-            return ApiResponse.success("Đăng ký thành công, nhưng gửi OTP thất bại. Vui lòng thử gửi lại OTP.");
+            return ApiResponse.success("Đã gửi thông tin đăng ký, tuy nhiên gửi OTP bị lỗi. Vui lòng nhấn gửi thử lại.");
         }
     }
 
     public ApiResponse<String> resendRegistrationOtp(String email) {
-        User user = userRepository.findByEmail(email).orElse(null);
-        if (user == null) {
-            return ApiResponse.error("Email không tồn tại trong hệ thống.");
-        }
-        if (user.isActive()) {
-            return ApiResponse.error("Tài khoản này đã được kích hoạt.");
+        if (!pendingRegistrations.containsKey(email)) {
+            // Kiểm tra xem user có thực sự đang đăng ký dở hay không
+            if (userRepository.existsByEmail(email)) {
+                return ApiResponse.error("Tài khoản này đã tồn tại và được hệ thống ghi nhận.");
+            }
+            return ApiResponse.error("Phiên đăng ký đã hết hạn hoặc email không hợp lệ.");
         }
         
         otpService.sendOtp(email);
@@ -73,22 +68,39 @@ public class UserService {
     }
 
     public ApiResponse<String> verifyRegistrationOtp(OtpVerifyRequest request) {
-        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
-        if (user == null) {
-            return ApiResponse.error("Email không tồn tại trong hệ thống.");
-        }
-        if (user.isActive()) {
-            return ApiResponse.error("Tài khoản này đã được kích hoạt.");
+        String email = request.getEmail();
+        
+        RegisterRequest pendingRequest = pendingRegistrations.get(email);
+        if (pendingRequest == null) {
+            // Nếu không có trong cache, có thể do server restart hoặc user tự đổi email
+            if (userRepository.existsByEmail(email)) {
+                return ApiResponse.error("Tài khoản này đã được tạo trước đó.");
+            }
+            return ApiResponse.error("Không tìm thấy thông tin đăng ký hoặc phiên đã hết hạn. Vui lòng đăng ký lại.");
         }
 
-        boolean isValid = otpService.verifyOtp(request.getEmail(), request.getOtpCode());
+        boolean isValid = otpService.verifyOtp(email, request.getOtpCode());
         if (!isValid) {
             return ApiResponse.error("Mã OTP không chính xác hoặc đã hết hạn.");
         }
 
-        user.setActive(true);
+        // Khi OTP hợp lệ, tiến hành tạo User và lưu vào Database
+        User user = User.builder()
+                .username(pendingRequest.getUsername())
+                .email(pendingRequest.getEmail())
+                .password(passwordEncoder.encode(pendingRequest.getPassword()))
+                .fullName(pendingRequest.getFullName())
+                .phone(pendingRequest.getPhone())
+                .role(Role.USER)
+                .isActive(true)
+                .build();
+
         userRepository.save(user);
-        return ApiResponse.success("Xác thực email thành công! Tài khoản đã được kích hoạt.");
+        
+        // Xóa thông tin tạm sau khi lưu thành công
+        pendingRegistrations.remove(email);
+
+        return ApiResponse.success("Xác thực email thành công! Tài khoản đã được tạo và kích hoạt.");
     }
 
     public ApiResponse<LoginResponse> login(LoginRequest request) {
