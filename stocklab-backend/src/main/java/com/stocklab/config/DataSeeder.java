@@ -4,14 +4,17 @@ import com.stocklab.model.Role;
 import com.stocklab.model.Stock;
 import com.stocklab.model.StockPriceHistory;
 import com.stocklab.model.User;
+import com.stocklab.model.Portfolio;
+import com.stocklab.model.Watchlist;
 import com.stocklab.repository.StockPriceHistoryRepository;
 import com.stocklab.repository.StockRepository;
 import com.stocklab.repository.UserRepository;
+import com.stocklab.repository.PortfolioRepository;
+import com.stocklab.repository.WatchlistRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +33,8 @@ public class DataSeeder implements CommandLineRunner {
     private final StockRepository stockRepository;
     private final StockPriceHistoryRepository priceHistoryRepository;
     private final UserRepository userRepository;
+    private final PortfolioRepository portfolioRepository;
+    private final WatchlistRepository watchlistRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -42,28 +47,18 @@ public class DataSeeder implements CommandLineRunner {
         unlockAllExistingUsers();
         seedStocks();
         unlockAllExistingStocks();
+        seedPortfolios();
+        seedWatchlists();
     }
 
     private void seedUsers() {
-        if (userRepository.count() > 0) {
-            log.info("👤 Database đã có dữ liệu user, bỏ qua seeding user.");
+        // Check nếu đã có regular users (không đếm admin vì seedAdminUser chạy trước)
+        if (userRepository.existsByUsername("user1")) {
+            log.info("👤 Database đã có regular users, bỏ qua seeding user.");
             return;
         }
 
         log.info("🌱 Bắt đầu seed dữ liệu user...");
-
-        // 1 Admin
-        User admin = User.builder()
-                .username("admin")
-                .email("admin@stocklab.vn")
-                .password(passwordEncoder.encode("admin123"))
-                .fullName("Admin StockLab")
-                .phone("0901000001")
-                .role(Role.ADMIN)
-                .balance(new BigDecimal("100000000.00"))
-                .build();
-        userRepository.save(admin);
-        log.info("  ✅ Admin: {} ({})", admin.getUsername(), admin.getEmail());
 
         // 1 Manager
         User manager = User.builder()
@@ -257,6 +252,93 @@ public class DataSeeder implements CommandLineRunner {
             stockRepository.saveAll(stocks);
             log.info("🔓 Đã tự động mở khoá (isActive = true) cho các mã cổ phiếu cũ do cập nhật cấu trúc Database.");
         }
+    }
+
+    private void seedPortfolios() {
+        if (portfolioRepository.count() > 0) {
+            log.info("💼 Database đã có dữ liệu portfolio, bỏ qua seeding.");
+            return;
+        }
+
+        log.info("🌱 Bắt đầu seed dữ liệu portfolio...");
+
+        List<User> users = userRepository.findAll().stream()
+                .filter(u -> u.getRole() == Role.USER || u.getRole() == Role.MANAGER)
+                .toList();
+        List<Stock> stocks = stockRepository.findAll();
+
+        if (users.isEmpty() || stocks.isEmpty()) {
+            log.warn("⚠️ Không có user hoặc stock để seed portfolio.");
+            return;
+        }
+
+        Random random = new Random(99);
+        int count = 0;
+
+        // Mỗi user sở hữu 5-7 CP ngẫu nhiên
+        for (User user : users) {
+            int numStocks = 5 + random.nextInt(3); // 5-7 stocks
+            List<Stock> shuffled = new ArrayList<>(stocks);
+            java.util.Collections.shuffle(shuffled, random);
+
+            for (int i = 0; i < Math.min(numStocks, shuffled.size()); i++) {
+                Stock stock = shuffled.get(i);
+                int qty = (random.nextInt(10) + 1) * 10; // 10-100 CP (bội 10)
+                double avgPrice = stock.getCurrentPrice().doubleValue() * (0.85 + random.nextDouble() * 0.2); // 85%-105% giá hiện tại
+
+                Portfolio portfolio = Portfolio.builder()
+                        .user(user)
+                        .stock(stock)
+                        .quantity(qty)
+                        .lockedQuantity(0)
+                        .avgBuyPrice(toBigDecimal(avgPrice))
+                        .build();
+                portfolioRepository.save(portfolio);
+                count++;
+            }
+        }
+
+        log.info("🎉 Seed portfolio hoàn tất! Đã tạo {} bản ghi.", count);
+    }
+
+    private void seedWatchlists() {
+        if (watchlistRepository.count() > 0) {
+            log.info("⭐ Database đã có dữ liệu watchlist, bỏ qua seeding.");
+            return;
+        }
+
+        log.info("🌱 Bắt đầu seed dữ liệu watchlist...");
+
+        List<User> users = userRepository.findAll().stream()
+                .filter(u -> u.getRole() == Role.USER || u.getRole() == Role.MANAGER)
+                .toList();
+        List<Stock> stocks = stockRepository.findAll();
+
+        if (users.isEmpty() || stocks.isEmpty()) {
+            log.warn("⚠️ Không có user hoặc stock để seed watchlist.");
+            return;
+        }
+
+        Random random = new Random(77);
+        int count = 0;
+
+        // Mỗi user theo dõi 4-6 CP
+        for (User user : users) {
+            int numStocks = 4 + random.nextInt(3); // 4-6 stocks
+            List<Stock> shuffled = new ArrayList<>(stocks);
+            java.util.Collections.shuffle(shuffled, random);
+
+            for (int i = 0; i < Math.min(numStocks, shuffled.size()); i++) {
+                Watchlist watchlist = Watchlist.builder()
+                        .user(user)
+                        .stock(shuffled.get(i))
+                        .build();
+                watchlistRepository.save(watchlist);
+                count++;
+            }
+        }
+
+        log.info("🎉 Seed watchlist hoàn tất! Đã tạo {} bản ghi.", count);
     }
 
     private record StockSeedData(String ticker, String companyName, String exchange, double basePrice) {}
