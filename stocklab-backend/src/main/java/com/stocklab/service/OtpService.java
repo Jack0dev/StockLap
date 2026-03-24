@@ -6,6 +6,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -18,12 +20,20 @@ public class OtpService {
     private final RedisTemplate<String, String> redisTemplate;
     private final EmailService emailService;
 
+    // Fallback in case Redis is not running
+    private final Map<String, String> localOtpStore = new ConcurrentHashMap<>();
+
     public ApiResponse<String> sendOtp(String email) {
         String otp = generateNumericOtp(6);
         String key = OTP_PREFIX + email;
         
-        // Save to Redis with 5 minutes TTL
-        redisTemplate.opsForValue().set(key, otp, OTP_VALID_DURATION_MINUTES, TimeUnit.MINUTES);
+        try {
+            // Save to Redis with 5 minutes TTL
+            redisTemplate.opsForValue().set(key, otp, OTP_VALID_DURATION_MINUTES, TimeUnit.MINUTES);
+        } catch (Exception e) {
+            System.err.println("Lỗi kết nối Redis! Sử dụng bộ nhớ tạm (Local Map) làm fallback.");
+            localOtpStore.put(email, otp);
+        }
         
         // Send email
         String subject = "StockLab - Mã xác thực OTP";
@@ -41,19 +51,32 @@ public class OtpService {
             return false;
         }
         String key = OTP_PREFIX + email;
-        String cachedOtp = redisTemplate.opsForValue().get(key);
         
-        if (cachedOtp != null && cachedOtp.equals(otpCode)) {
-            // Delete OTP after successful verification to prevent reuse
-            redisTemplate.delete(key);
-            return true;
+        try {
+            String cachedOtp = redisTemplate.opsForValue().get(key);
+            if (cachedOtp != null && cachedOtp.equals(otpCode)) {
+                // Delete OTP after successful verification to prevent reuse
+                redisTemplate.delete(key);
+                return true;
+            }
+        } catch (Exception e) {
+            // Fallback to local store
+            String storedOtp = localOtpStore.get(email);
+            if (storedOtp != null && storedOtp.equals(otpCode)) {
+                localOtpStore.remove(email);
+                return true;
+            }
         }
         return false;
     }
 
     public boolean hasOtp(String email) {
         String key = OTP_PREFIX + email;
-        return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+        try {
+            return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+        } catch (Exception e) {
+            return localOtpStore.containsKey(email);
+        }
     }
 
     private String generateNumericOtp(int length) {

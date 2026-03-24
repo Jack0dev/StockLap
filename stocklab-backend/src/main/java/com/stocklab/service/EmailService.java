@@ -14,6 +14,12 @@ public class EmailService {
 
     @Async
     public void sendEmail(String to, String subject, String body) {
+        System.out.println("\n========== [MAILTRAP / MOCK EMAIL] ==========");
+        System.out.println("To: " + to);
+        System.out.println("Subject: " + subject);
+        System.out.println("Body:\n" + body);
+        System.out.println("=============================================\n");
+
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom("noreply@stocklab.com");
@@ -22,7 +28,8 @@ public class EmailService {
             message.setText(body);
             javaMailSender.send(message);
         } catch (Exception e) {
-            System.err.println("Failed to send email to " + to + ": " + e.getMessage());
+            System.err.println("Không thể gửi email thực do sai cấu hình SMTP: " + e.getMessage());
+            System.err.println("Nhưng bạn có thể dùng mã OTP đã in ra ở trên để test tiếp!");
         }
     }
 }
