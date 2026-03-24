@@ -128,4 +128,61 @@ public class OrderController {
         }
         return ResponseEntity.badRequest().body(response);
     }
+
+    // ===== Migrated from TradeController =====
+
+    /**
+     * GET /api/orders/transactions?page=0&size=20&type=BUY
+     * Lịch sử giao dịch
+     */
+    @GetMapping("/transactions")
+    public ResponseEntity<ApiResponse<Page<TransactionResponse>>> getTransactionHistory(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String type) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        ApiResponse<Page<TransactionResponse>> response = orderService.getTransactionHistory(
+                userDetails.getUsername(), pageable, type);
+
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    /**
+     * GET /api/orders/portfolio
+     * Danh mục đầu tư
+     */
+    @GetMapping("/portfolio")
+    public ResponseEntity<ApiResponse<java.util.List<PortfolioResponse>>> getPortfolio(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        ApiResponse<java.util.List<PortfolioResponse>> response = orderService.getPortfolio(
+                userDetails.getUsername());
+
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    /**
+     * GET /api/orders/portfolio/summary
+     * Tổng quan danh mục đầu tư (cho charts)
+     */
+    @GetMapping("/portfolio/summary")
+    public ResponseEntity<ApiResponse<PortfolioSummaryResponse>> getPortfolioSummary(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        ApiResponse<PortfolioSummaryResponse> response = orderService.getPortfolioSummary(
+                userDetails.getUsername());
+
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
 }

@@ -62,15 +62,15 @@ export const stockAPI = {
     api.get(`/stocks/${ticker}/history`, { params: { range } }),
 };
 
-// ===== Trade APIs (portfolio & transactions — sẽ migrate sang OrderService sau) =====
+// ===== Trade APIs (migrated to OrderService) =====
 export const tradeAPI = {
   getTransactions: (page = 0, size = 20, type = '') => {
     const params = { page, size };
     if (type) params.type = type;
-    return api.get('/trade/transactions', { params });
+    return api.get('/orders/transactions', { params });
   },
-  getPortfolio: () => api.get('/trade/portfolio'),
-  getPortfolioSummary: () => api.get('/trade/portfolio/summary'),
+  getPortfolio: () => api.get('/orders/portfolio'),
+  getPortfolioSummary: () => api.get('/orders/portfolio/summary'),
 };
 
 // ===== Order APIs (OMS) =====
