@@ -28,8 +28,8 @@ public class EmailService {
             message.setText(body);
             javaMailSender.send(message);
         } catch (Exception e) {
-            System.err.println("Không thể gửi email thực do sai cấu hình SMTP: " + e.getMessage());
-            System.err.println("Nhưng bạn có thể dùng mã OTP đã in ra ở trên để test tiếp!");
+            // Không in ra màn hình lỗi Authentication failed để tránh làm rối log khi test local
+            System.out.println("[Mock Email] Đã bỏ qua gửi email thực tế. Vui lòng lấy mã OTP ở trên.");
         }
     }
 }

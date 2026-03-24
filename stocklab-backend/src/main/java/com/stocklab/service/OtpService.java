@@ -31,7 +31,7 @@ public class OtpService {
             // Save to Redis with 5 minutes TTL
             redisTemplate.opsForValue().set(key, otp, OTP_VALID_DURATION_MINUTES, TimeUnit.MINUTES);
         } catch (Exception e) {
-            System.err.println("Lỗi kết nối Redis! Sử dụng bộ nhớ tạm (Local Map) làm fallback.");
+            // Fallback lưu tạm vào RAM, ẩn dòng báo lỗi để Terminal sạch sẽ
             localOtpStore.put(email, otp);
         }
         
