@@ -6,6 +6,8 @@ import com.stocklab.model.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -32,4 +34,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     // Đếm lệnh PENDING cho 1 stock (cho order book)
     List<Order> findByStockIdAndSideAndStatusIn(Long stockId, OrderSide side, List<OrderStatus> statuses);
+
+    // Lấy danh sách stock IDs có lệnh active (cho MatchingScheduler)
+    @Query("SELECT DISTINCT o.stock.id FROM Order o WHERE o.status IN :statuses")
+    List<Long> findDistinctStockIdsByStatusIn(@Param("statuses") List<OrderStatus> statuses);
 }
