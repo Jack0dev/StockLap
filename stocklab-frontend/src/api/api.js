@@ -37,6 +37,8 @@ api.interceptors.response.use(
 // ===== Auth APIs =====
 export const authAPI = {
   register: (data) => api.post('/auth/register', data),
+  verifyRegistration: (data) => api.post('/auth/verify-registration', data),
+  resendOtp: (email) => api.post('/auth/resend-otp', null, { params: { email } }),
   login: (data) => api.post('/auth/login', data),
 };
 

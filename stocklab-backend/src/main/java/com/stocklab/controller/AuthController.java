@@ -23,6 +23,24 @@ public class AuthController {
         return ResponseEntity.badRequest().body(response);
     }
 
+    @PostMapping("/verify-registration")
+    public ResponseEntity<ApiResponse<String>> verifyRegistration(@Valid @RequestBody OtpVerifyRequest request) {
+        ApiResponse<String> response = userService.verifyRegistrationOtp(request);
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<ApiResponse<String>> resendOtp(@RequestParam String email) {
+        ApiResponse<String> response = userService.resendRegistrationOtp(email);
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
+
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
         ApiResponse<LoginResponse> response = userService.login(request);

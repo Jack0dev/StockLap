@@ -24,6 +24,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
+    private final OtpService otpService;
 
     public ApiResponse<String> register(RegisterRequest request) {
         // Kiểm tra username đã tồn tại
@@ -36,7 +37,7 @@ public class UserService {
             return ApiResponse.error("Email đã được sử dụng!");
         }
 
-        // Tạo user mới
+        // Tạo user mới (isActive = false vì cần xác thực email)
         User user = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
@@ -44,11 +45,50 @@ public class UserService {
                 .fullName(request.getFullName())
                 .phone(request.getPhone())
                 .role(Role.USER)
+                .isActive(false)
                 .build();
 
         userRepository.save(user);
 
-        return ApiResponse.success("Đăng ký thành công!");
+        // Gửi OTP qua email
+        try {
+            otpService.sendOtp(request.getEmail());
+            return ApiResponse.success("Đăng ký thành công! Vui lòng kiểm tra email để lấy mã OTP xác thực.");
+        } catch (Exception e) {
+            return ApiResponse.success("Đăng ký thành công, nhưng gửi OTP thất bại. Vui lòng thử gửi lại OTP.");
+        }
+    }
+
+    public ApiResponse<String> resendRegistrationOtp(String email) {
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            return ApiResponse.error("Email không tồn tại trong hệ thống.");
+        }
+        if (user.isActive()) {
+            return ApiResponse.error("Tài khoản này đã được kích hoạt.");
+        }
+        
+        otpService.sendOtp(email);
+        return ApiResponse.success("Đã gửi lại mã OTP đến email của bạn.");
+    }
+
+    public ApiResponse<String> verifyRegistrationOtp(OtpVerifyRequest request) {
+        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
+        if (user == null) {
+            return ApiResponse.error("Email không tồn tại trong hệ thống.");
+        }
+        if (user.isActive()) {
+            return ApiResponse.error("Tài khoản này đã được kích hoạt.");
+        }
+
+        boolean isValid = otpService.verifyOtp(request.getEmail(), request.getOtpCode());
+        if (!isValid) {
+            return ApiResponse.error("Mã OTP không chính xác hoặc đã hết hạn.");
+        }
+
+        user.setActive(true);
+        userRepository.save(user);
+        return ApiResponse.success("Xác thực email thành công! Tài khoản đã được kích hoạt.");
     }
 
     public ApiResponse<LoginResponse> login(LoginRequest request) {
@@ -76,7 +116,7 @@ public class UserService {
 
             return ApiResponse.success("Đăng nhập thành công!", loginResponse);
         } catch (DisabledException e) {
-            return ApiResponse.error("Tài khoản của bạn đã bị khóa!");
+            return ApiResponse.error("Tài khoản của bạn chưa được kích hoạt hoặc đã bị khóa!");
         } catch (Exception e) {
             return ApiResponse.error("Sai username hoặc mật khẩu!");
         }

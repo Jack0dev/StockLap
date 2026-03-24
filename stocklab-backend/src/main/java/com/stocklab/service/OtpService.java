@@ -2,59 +2,66 @@ package com.stocklab.service;
 
 import com.stocklab.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
+import java.security.SecureRandom;
+import java.util.concurrent.TimeUnit;
 
-/**
- * Mock OTP Service — lưu OTP tạm trong memory.
- * Trong production sẽ gửi qua SMS/Email.
- */
 @Service
 @RequiredArgsConstructor
 public class OtpService {
 
-    // Map<username, otpCode>
-    private final Map<String, String> otpStore = new ConcurrentHashMap<>();
-    private final Random random = new Random();
+    private static final String OTP_PREFIX = "OTP:";
+    private static final long OTP_VALID_DURATION_MINUTES = 5;
 
-    /**
-     * Tạo OTP 6 chữ số và lưu vào memory.
-     * Mock: luôn trả về "123456" để dễ test.
-     * Trong production sẽ generate random và gửi qua SMS/Email.
-     */
-    public ApiResponse<String> sendOtp(String username) {
-        // Mock: dùng OTP cố định để test
-        String otp = "123456";
+    private final RedisTemplate<String, String> redisTemplate;
+    private final EmailService emailService;
 
-        // Uncomment dòng dưới để dùng OTP random (production)
-        // String otp = String.format("%06d", random.nextInt(999999));
-
-        otpStore.put(username, otp);
-        return ApiResponse.success("Đã gửi mã OTP. (Mock: " + otp + ")", otp);
+    public ApiResponse<String> sendOtp(String email) {
+        String otp = generateNumericOtp(6);
+        String key = OTP_PREFIX + email;
+        
+        // Save to Redis with 5 minutes TTL
+        redisTemplate.opsForValue().set(key, otp, OTP_VALID_DURATION_MINUTES, TimeUnit.MINUTES);
+        
+        // Send email
+        String subject = "StockLab - Mã xác thực OTP";
+        String body = "Mã xác thực của bạn là: " + otp + "\n"
+                + "Mã này có hiệu lực trong " + OTP_VALID_DURATION_MINUTES + " phút.\n"
+                + "Vui lòng không chia sẻ mã này cho bất kỳ ai!";
+        
+        emailService.sendEmail(email, subject, body);
+        
+        return ApiResponse.success("Đã gửi mã OTP đến email của bạn.", null);
     }
 
-    /**
-     * Xác thực OTP
-     */
-    public boolean verifyOtp(String username, String otpCode) {
+    public boolean verifyOtp(String email, String otpCode) {
         if (otpCode == null || otpCode.isEmpty()) {
             return false;
         }
-        String storedOtp = otpStore.get(username);
-        if (storedOtp != null && storedOtp.equals(otpCode)) {
-            otpStore.remove(username); // OTP chỉ dùng 1 lần
+        String key = OTP_PREFIX + email;
+        String cachedOtp = redisTemplate.opsForValue().get(key);
+        
+        if (cachedOtp != null && cachedOtp.equals(otpCode)) {
+            // Delete OTP after successful verification to prevent reuse
+            redisTemplate.delete(key);
             return true;
         }
         return false;
     }
 
-    /**
-     * Kiểm tra user đã có OTP chưa (chưa verify)
-     */
-    public boolean hasOtp(String username) {
-        return otpStore.containsKey(username);
+    public boolean hasOtp(String email) {
+        String key = OTP_PREFIX + email;
+        return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+    }
+
+    private String generateNumericOtp(int length) {
+        SecureRandom random = new SecureRandom();
+        StringBuilder otp = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            otp.append(random.nextInt(10));
+        }
+        return otp.toString();
     }
 }
