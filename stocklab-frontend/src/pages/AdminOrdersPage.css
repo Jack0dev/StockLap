@@ -1,0 +1,260 @@
+.admin-orders-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 8px;
+}
+
+.page-header p {
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.filters-card {
+  background: var(--card-bg);
+  padding: 16px 20px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.filters-card label {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.admin-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  min-width: 200px;
+  background-color: var(--card-bg); /* Sửa background thành card-bg thay vì bg-color */
+  color: var(--text-color);
+  outline: none;
+  cursor: pointer;
+}
+
+.admin-select:focus {
+  border-color: var(--primary-color);
+}
+
+/* Đảm bảo dropdown options dễ nhìn trong chế độ dark mode */
+.admin-select option {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  padding: 10px;
+}
+
+/* Khuôn (Card) chứa bảng dữ liệu */
+.table-card {
+  background: var(--card-bg, #1e222d); /* Hoặc dùng rgba(255, 255, 255, 0.03) */
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.admin-table th {
+  background-color: rgba(0, 0, 0, 0.02);
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.admin-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.01);
+}
+
+.font-weight-bold {
+  font-weight: 700;
+  color: #2962ff;
+}
+
+.side-badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+.side-badge.buy {
+  background: rgba(0, 200, 83, 0.15);
+  color: #00c853;
+}
+
+.side-badge.sell {
+  background: rgba(213, 0, 0, 0.15);
+  color: #d50000;
+}
+
+.badge {
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.badge-warning { background: #fff3e0; color: #f57c00; }
+.badge-info { background: #e3f2fd; color: #1976d2; }
+.badge-success { background: #e8f5e9; color: #388e3c; }
+.badge-danger { background: #ffebee; color: #d32f2f; }
+.badge-dark { background: #f5f5f5; color: #616161; }
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+
+.btn-danger {
+  background-color: #fce4e4;
+  color: #d32f2f;
+  border: 1px solid transparent;
+}
+
+.btn-danger:hover {
+  background-color: #d32f2f;
+  color: white;
+}
+
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.page-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-color);
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Custom Modal Styles */
+.custom-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+  animation: fadeInModal 0.2s ease-out forwards;
+}
+
+.custom-modal {
+  background: var(--card-bg, #fff);
+  border-radius: 12px;
+  width: 450px;
+  max-width: 90%;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  animation: slideUpModal 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  display: flex;
+  flex-direction: column;
+}
+
+.custom-modal-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.custom-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-color, #333);
+}
+
+.custom-modal-body {
+  padding: 24px;
+  color: var(--text-color, #333);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.custom-modal-body p {
+  margin: 0;
+}
+
+.custom-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUpModal {
+  from { transform: translateY(30px) scale(0.95); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}

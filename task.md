@@ -94,7 +94,7 @@
 - [x] **ADM-2** Quản lý Users
 - [x] **ADM-3** Quản lý Stocks
 - [x] **ADM-4** Dashboard thống kê
-- [ ] **ADM-5** Quản lý lệnh
+- [x] **ADM-5** Quản lý lệnh
 
 ---
 

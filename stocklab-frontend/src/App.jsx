@@ -22,7 +22,7 @@ function AppLayout() {
 }
 
 function App() {
-  const { isAuthenticated, loading } = useAuth()
+  const { user, isAuthenticated, loading } = useAuth()
 
   if (loading) {
     return (
@@ -60,7 +60,7 @@ function App() {
       </Route>
 
       {/* Default redirect */}
-      <Route path="*" element={<Navigate to={isAuthenticated ? "/stocks" : "/login"} />} />
+      <Route path="*" element={<Navigate to={isAuthenticated ? (user?.role === 'ADMIN' ? "/admin/dashboard" : "/stocks") : "/login"} />} />
     </Routes>
   )
 }

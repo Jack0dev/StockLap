@@ -79,33 +79,44 @@ export default function Navbar() {
 
         {/* Nav Links */}
         <div className="navbar-links">
-          <Link to="/stocks" className="nav-link">Bảng Giá</Link>
-          <Link to="/watchlist" className="nav-link">Thông Tin Thị Trường</Link>
+          {user?.role === 'ADMIN' ? (
+            <>
+              <Link to="/admin/dashboard" className="nav-link">Admin Dashboard</Link>
+              <Link to="/admin/users" className="nav-link">QL Người Dùng</Link>
+              <Link to="/admin/stocks" className="nav-link">QL Cổ Phiếu</Link>
+              <Link to="/admin/orders" className="nav-link">QL Lệnh</Link>
+            </>
+          ) : (
+            <>
+              <Link to="/stocks" className="nav-link">Bảng Giá</Link>
+              <Link to="/watchlist" className="nav-link">Thông Tin Thị Trường</Link>
 
-          {/* Mega Dropdown — Giao Dịch Cơ Sở */}
-          <div className="nav-mega-wrapper">
-            <button className="nav-link nav-mega-trigger">
-              Giao Dịch Cơ Sở
-              <svg className="nav-mega-chevron" width="12" height="12" viewBox="0 0 16 16" fill="none">
-                <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </button>
-            <div className="mega-dropdown">
-              <div className="mega-dropdown-inner">
-                {tradingMenuItems.map((item, i) => (
-                  <Link key={i} to={item.path} className="mega-item">
-                    <span className="mega-item-icon">{item.icon}</span>
-                    <div className="mega-item-text">
-                      <span className="mega-item-title">{item.title}</span>
-                      <span className="mega-item-desc">{item.desc}</span>
-                    </div>
-                  </Link>
-                ))}
+              {/* Mega Dropdown — Giao Dịch Cơ Sở */}
+              <div className="nav-mega-wrapper">
+                <button className="nav-link nav-mega-trigger">
+                  Giao Dịch Cơ Sở
+                  <svg className="nav-mega-chevron" width="12" height="12" viewBox="0 0 16 16" fill="none">
+                    <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </button>
+                <div className="mega-dropdown">
+                  <div className="mega-dropdown-inner">
+                    {tradingMenuItems.map((item, i) => (
+                      <Link key={i} to={item.path} className="mega-item">
+                        <span className="mega-item-icon">{item.icon}</span>
+                        <div className="mega-item-text">
+                          <span className="mega-item-title">{item.title}</span>
+                          <span className="mega-item-desc">{item.desc}</span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <Link to="/wallet" className="nav-link">Giao Dịch Tiền</Link>
+              <Link to="/wallet" className="nav-link">Giao Dịch Tiền</Link>
+             </>
+          )}
         </div>
 
         {/* User Menu */}

@@ -264,6 +264,68 @@ public class OrderService {
     }
 
     /**
+     * Dành cho Admin: Lấy toàn bộ lệnh trên toàn hệ thống
+     */
+    public ApiResponse<Page<OrderResponse>> getAllOrdersForAdmin(Pageable pageable, String status) {
+        Page<OrderResponse> orders;
+        if (status != null && !status.isEmpty()) {
+            try {
+                OrderStatus orderStatus = OrderStatus.valueOf(status.toUpperCase());
+                orders = orderRepository.findByStatusOrderByCreatedAtDesc(orderStatus, pageable)
+                        .map(this::toOrderResponse);
+            } catch (IllegalArgumentException e) {
+                return ApiResponse.error("Trạng thái lệnh không hợp lệ: " + status);
+            }
+        } else {
+            orders = orderRepository.findAllByOrderByCreatedAtDesc(pageable)
+                    .map(this::toOrderResponse);
+        }
+        return ApiResponse.success("Lấy danh sách lệnh toàn hệ thống thành công", orders);
+    }
+
+    /**
+     * Dành cho Admin: Hủy lệnh cưỡng chế (Force Cancel)
+     * Không kiểm tra người sở hữu lệnh
+     */
+    @Transactional
+    public ApiResponse<OrderResponse> adminCancelOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId).orElse(null);
+        if (order == null) {
+            return ApiResponse.error("Không tìm thấy lệnh #" + orderId);
+        }
+
+        // Chỉ hủy được lệnh PENDING hoặc PARTIAL
+        if (!order.isCancellable()) {
+            return ApiResponse.error("Không thể hủy lệnh ở trạng thái: " + order.getStatus());
+        }
+
+        User user = order.getUser();
+        int remainingQty = order.getRemainingQuantity();
+
+        // Unlock tài sản
+        if (order.getSide() == OrderSide.BUY) {
+            BigDecimal refund = order.getPrice().multiply(BigDecimal.valueOf(remainingQty));
+            user.setLockedBalance(user.getLockedBalance().subtract(refund));
+            userRepository.save(user);
+        } else {
+            Portfolio portfolio = portfolioRepository
+                    .findByUserIdAndStockId(user.getId(), order.getStock().getId())
+                    .orElse(null);
+            if (portfolio != null) {
+                portfolio.setLockedQuantity(portfolio.getLockedQuantity() - remainingQty);
+                portfolioRepository.save(portfolio);
+            }
+        }
+
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+
+        return ApiResponse.success(
+                "Đã Force Cancel lệnh #" + orderId + " thành công!",
+                toOrderResponse(order));
+    }
+
+    /**
      * Sửa lệnh — hủy lệnh cũ + đặt lệnh mới với giá/số lượng mới
      */
     @Transactional

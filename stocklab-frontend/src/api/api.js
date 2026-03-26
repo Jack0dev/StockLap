@@ -119,4 +119,17 @@ export const adminAPI = {
   changeUserRole: (userId, role) => api.put(`/admin/users/${userId}/role`, { role }),
 };
 
+export const adminStockAPI = {
+  getAllStocks: (params) => api.get('/admin/stocks', { params }),
+  createStock: (data) => api.post('/admin/stocks', data),
+  updateStock: (id, data) => api.put(`/admin/stocks/${id}`, data),
+  toggleStockStatus: (id) => api.put(`/admin/stocks/${id}/toggle-status`),
+  deleteStock: (id) => api.delete(`/admin/stocks/${id}`),
+};
+
+export const adminOrderAPI = {
+  getAllOrders: (params) => api.get('/admin/orders', { params }),
+  forceCancelOrder: (id) => api.put(`/admin/orders/${id}/cancel`),
+};
+
 export default api;

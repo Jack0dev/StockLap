@@ -26,7 +26,11 @@ export default function LoginPage() {
       if (res.data.success) {
         const { token, username, email, fullName, role } = res.data.data;
         login({ username, email, fullName, role }, token);
-        navigate('/dashboard');
+        if (role === 'ADMIN') {
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/stocks');
+        }
       } else {
         setError(res.data.message);
       }

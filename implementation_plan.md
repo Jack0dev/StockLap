@@ -215,7 +215,7 @@ config/DataSeeder.java           [MODIFY] — thêm bot user
 | ADM-2 | **Quản lý Users** | CRUD users, khóa/mở tài khoản, xem balance, xem giao dịch | Bảng users, search, filter, actions | ✅ |
 | ADM-3 | **Quản lý Stocks** | CRUD stocks, khoá/mở, xoá cứng/mềm, pagination/filter/sort | Bảng stocks nâng cao, modals | ✅ |
 | ADM-4 | **Dashboard thống kê** | Tổng user, tổng GD, tổng KL, top CP, doanh thu | Dashboard cards + charts | ✅ |
-| ADM-5 | **Quản lý lệnh** | Xem tất cả lệnh, force cancel, xem order book | Bảng lệnh toàn hệ thống | ❌ |
+| ADM-5 | **Quản lý lệnh** | Xem tất cả lệnh, force cancel, xem order book | Bảng lệnh toàn hệ thống | ✅ |
 
 ---
 
