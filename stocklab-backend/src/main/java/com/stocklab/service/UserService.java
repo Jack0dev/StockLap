@@ -189,6 +189,41 @@ public class UserService {
         return ApiResponse.success("Đổi mật khẩu thành công!");
     }
 
+    public ApiResponse<String> requestForgotPassword(ForgotPasswordRequest request) {
+        String email = request.getEmail();
+        if (!userRepository.existsByEmail(email)) {
+            // Không nên tiết lộ email có tồn tại hay không, nhưng ở đây cần phản hồi thực tế
+            return ApiResponse.error("Email không tồn tại trong hệ thống!");
+        }
+
+        try {
+            otpService.sendOtp(email);
+            return ApiResponse.success("Đã gửi mã OTP khôi phục mật khẩu đến email của bạn.");
+        } catch (Exception e) {
+            return ApiResponse.error("Lỗi khi gửi mã OTP. Vui lòng thử lại sau.");
+        }
+    }
+
+    public ApiResponse<String> resetPasswordWithOtp(ForgotPasswordResetRequest request) {
+        String email = request.getEmail();
+        
+        // 1. Xác thực OTP
+        boolean isValid = otpService.verifyOtp(email, request.getOtpCode());
+        if (!isValid) {
+            return ApiResponse.error("Mã OTP không chính xác hoặc đã hết hạn.");
+        }
+
+        // 2. Tìm User để cập nhật
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Tài khoản không tồn tại."));
+
+        // 3. Cập nhật mật khẩu mới
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        return ApiResponse.success("Mật khẩu đã được đặt lại thành công! Bạn có thể đăng nhập bằng mật khẩu mới.");
+    }
+
     public ApiResponse<List<UserProfileResponse>> getAllUsers() {
         List<UserProfileResponse> users = userRepository.findAll().stream()
                 .map(user -> UserProfileResponse.builder()

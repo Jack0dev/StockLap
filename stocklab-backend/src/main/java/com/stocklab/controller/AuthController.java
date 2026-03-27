@@ -49,4 +49,22 @@ public class AuthController {
         }
         return ResponseEntity.badRequest().body(response);
     }
+
+    @PostMapping("/forgot-password/request")
+    public ResponseEntity<ApiResponse<String>> requestForgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        ApiResponse<String> response = userService.requestForgotPassword(request);
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    @PostMapping("/forgot-password/reset")
+    public ResponseEntity<ApiResponse<String>> resetPassword(@Valid @RequestBody ForgotPasswordResetRequest request) {
+        ApiResponse<String> response = userService.resetPasswordWithOtp(request);
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
 }
