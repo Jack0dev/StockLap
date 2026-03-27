@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -175,16 +176,74 @@ public class UserService {
         return ApiResponse.success("Cập nhật thông tin thành công!");
     }
 
-    public ApiResponse<String> changePassword(String username, ChangePasswordRequest request) {
+    // Cache tạm thời thông tin đổi mật khẩu (email -> newPassword) trong Redis
+    private static final String PENDING_PASSWORD_PREFIX = "PENDING_PWD:";
+
+    public ApiResponse<String> requestChangePassword(String username, ChangePasswordRequest request) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
+        // 1. Kiểm tra mật khẩu cũ
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
             return ApiResponse.error("Mật khẩu cũ không chính xác!");
         }
 
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        // 2. Mật khẩu mới không được trùng mật khẩu cũ
+        if (request.getOldPassword().equals(request.getNewPassword())) {
+            return ApiResponse.error("Mật khẩu mới không được giống mật khẩu cũ!");
+        }
+
+        // 3. Lưu mật khẩu mới vào Redis chờ xác thực (TTL 10 phút)
+        String key = PENDING_PASSWORD_PREFIX + user.getEmail();
+        try {
+            otpService.getRedisTemplate().opsForValue().set(key, request.getNewPassword(), 10, TimeUnit.MINUTES);
+        } catch (Exception e) {
+            // Nếu Redis lỗi, ném lỗi để người dùng biết
+            return ApiResponse.error("Hệ thống bận, vui lòng thử lại sau.");
+        }
+
+        // 4. Gửi OTP qua email
+        try {
+            otpService.sendOtp(user.getEmail());
+            return ApiResponse.success("Mã OTP đã được gửi đến email của bạn để xác thực việc đổi mật khẩu.");
+        } catch (Exception e) {
+            return ApiResponse.error("Lỗi khi gửi OTP. Vui lòng thử lại.");
+        }
+    }
+
+    public ApiResponse<String> verifyChangePasswordOtp(String username, ChangePasswordVerifyRequest request) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+
+        String email = user.getEmail();
+        String key = PENDING_PASSWORD_PREFIX + email;
+
+        // 1. Kiểm tra xem có yêu cầu đổi mật khẩu đang chờ không
+        String newPassword;
+        try {
+            newPassword = (String) otpService.getRedisTemplate().opsForValue().get(key);
+        } catch (Exception e) {
+            return ApiResponse.error("Hệ thống bận, vui lòng thử lại sau.");
+        }
+
+        if (newPassword == null) {
+            return ApiResponse.error("Yêu cầu đổi mật khẩu đã hết hạn hoặc không tồn tại.");
+        }
+
+        // 2. Xác thực OTP
+        boolean isValid = otpService.verifyOtp(email, request.getOtpCode());
+        if (!isValid) {
+            return ApiResponse.error("Mã OTP không chính xác hoặc đã hết hạn.");
+        }
+
+        // 3. Cập nhật mật khẩu chính thức
+        user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+
+        // 4. Dọn dẹp cache
+        try {
+            otpService.getRedisTemplate().delete(key);
+        } catch (Exception ignored) {}
 
         return ApiResponse.success("Đổi mật khẩu thành công!");
     }
