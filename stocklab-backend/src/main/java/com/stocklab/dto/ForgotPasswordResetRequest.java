@@ -1,15 +1,13 @@
 package com.stocklab.dto;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
 public class ForgotPasswordResetRequest {
-    @NotBlank(message = "Email không được để trống")
-    @Email(message = "Email không hợp lệ")
-    private String email;
+    @NotBlank(message = "Tên đăng nhập không được để trống")
+    private String username;
 
     @NotBlank(message = "Mã OTP không được để trống")
     private String otpCode;

@@ -55,7 +55,7 @@ export default function LoginPage() {
           setError(res.data.message);
         }
       } else if (mode === 'forgot_request') {
-        const res = await authAPI.forgotPasswordRequest({ email: form.email });
+        const res = await authAPI.forgotPasswordRequest({ username: form.username });
         if (res.data.success) {
           setSuccess(res.data.message);
           setMode('forgot_reset');
@@ -64,7 +64,7 @@ export default function LoginPage() {
         }
       } else if (mode === 'forgot_reset') {
         const res = await authAPI.forgotPasswordReset({
-          email: form.email,
+          username: form.username,
           otpCode: form.otpCode,
           newPassword: form.newPassword
         });
@@ -183,6 +183,68 @@ export default function LoginPage() {
                 Mã xác thực đã được gửi đến số điện thoại của bạn. (Kiểm tra Log Backend để lấy mã giả lập)
               </p>
             </div>
+          )}
+
+          {mode === 'forgot_request' && (
+            <div className="form-group">
+              <label className="form-label" htmlFor="username">Tên đăng nhập</label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                className="form-input"
+                placeholder="Nhập tên đăng nhập để lấy OTP"
+                value={form.username}
+                onChange={handleChange}
+                required
+                autoFocus
+              />
+            </div>
+          )}
+
+          {mode === 'forgot_reset' && (
+            <>
+              <div className="form-group">
+                <label className="form-label" htmlFor="username">Tên đăng nhập</label>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  className="form-input"
+                  value={form.username}
+                  onChange={handleChange}
+                  disabled
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="otpCode">Mã OTP (từ Email)</label>
+                <input
+                  id="otpCode"
+                  name="otpCode"
+                  type="text"
+                  className="form-input"
+                  placeholder="Nhập mã OTP nhận được"
+                  value={form.otpCode}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="newPassword">Mật khẩu mới</label>
+                <input
+                  id="newPassword"
+                  name="newPassword"
+                  type="password"
+                  className="form-input"
+                  placeholder="Nhập mật khẩu mới"
+                  value={form.newPassword}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </>
           )}
 
           <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={loading}>

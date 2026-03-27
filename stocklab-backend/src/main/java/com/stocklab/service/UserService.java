@@ -182,31 +182,43 @@ public class UserService {
     }
 
     public ApiResponse<String> requestForgotPassword(ForgotPasswordRequest request) {
-        String email = request.getEmail();
-        if (!userRepository.existsByEmail(email)) {
-            return ApiResponse.error("Email không tồn tại trong hệ thống!");
+        String username = request.getUsername();
+        User user = userRepository.findByUsername(username)
+                .orElse(null);
+        
+        if (user == null) {
+            return ApiResponse.error("Tên đăng nhập không tồn tại trong hệ thống!");
         }
 
+        String email = user.getEmail();
         try {
             otpService.sendOtp(email);
-            return ApiResponse.success("Đã gửi mã OTP khôi phục mật khẩu đến email của bạn.");
+            return ApiResponse.success("Đã gửi mã OTP khôi phục mật khẩu đến email đăng ký: " + maskEmail(email));
         } catch (Exception e) {
             return ApiResponse.error("Lỗi khi gửi mã OTP. Vui lòng thử lại sau.");
         }
     }
 
+    private String maskEmail(String email) {
+        int atIndex = email.indexOf("@");
+        if (atIndex <= 1) return email;
+        return email.substring(0, 2) + "****" + email.substring(atIndex);
+    }
+
     public ApiResponse<String> resetPasswordWithOtp(ForgotPasswordResetRequest request) {
-        String email = request.getEmail();
+        String username = request.getUsername();
         
-        // 1. Xác thực OTP
+        // 1. Tìm User để lấy email xác thực OTP
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Tài khoản không tồn tại."));
+        
+        String email = user.getEmail();
+
+        // 2. Xác thực OTP
         boolean isValid = otpService.verifyOtp(email, request.getOtpCode());
         if (!isValid) {
             return ApiResponse.error("Mã OTP không chính xác hoặc đã hết hạn.");
         }
-
-        // 2. Tìm User để cập nhật
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Tài khoản không tồn tại."));
 
         // 3. Cập nhật mật khẩu mới
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
