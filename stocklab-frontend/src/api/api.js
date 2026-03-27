@@ -40,13 +40,16 @@ export const authAPI = {
   verifyRegistration: (data) => api.post('/auth/verify-registration', data),
   resendOtp: (email) => api.post('/auth/resend-otp', null, { params: { email } }),
   login: (data) => api.post('/auth/login', data),
+  forgotPasswordRequest: (data) => api.post('/auth/forgot-password/request', data),
+  resetPassword: (data) => api.post('/auth/forgot-password/reset', data),
 };
 
 // ===== User APIs =====
 export const userAPI = {
   getProfile: () => api.get('/users/profile'),
   updateProfile: (data) => api.put('/users/profile', data),
-  changePassword: (data) => api.put('/users/change-password', data),
+  requestChangePassword: (data) => api.post('/users/change-password/request', data),
+  verifyChangePassword: (data) => api.post('/users/change-password/verify', data),
 };
 
 // ===== Stock APIs =====
