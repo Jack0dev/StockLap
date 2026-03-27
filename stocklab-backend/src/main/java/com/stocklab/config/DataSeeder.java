@@ -215,12 +215,12 @@ public class DataSeeder implements CommandLineRunner {
                     .username("admin")
                     .email("admin@stocklab.com")
                     .fullName("System Admin")
-                    .password(passwordEncoder.encode("Admin@123"))
+                    .password(passwordEncoder.encode("admin123"))
                     .role(Role.ADMIN)
                     .balance(new BigDecimal("100000000.00")) // 100M VND
                     .build();
             userRepository.save(admin);
-            log.info("👤 Đã tạo tài khoản admin mặc định (admin / Admin@123)");
+            log.info("👤 Đã tạo tài khoản admin mặc định (admin / admin123)");
         }
     }
 
