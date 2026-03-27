@@ -49,4 +49,31 @@ public class AuthController {
         }
         return ResponseEntity.badRequest().body(response);
     }
+
+    @PostMapping("/login/verify-2fa")
+    public ResponseEntity<ApiResponse<LoginResponse>> verify2fa(@Valid @RequestBody Verify2faRequest request) {
+        ApiResponse<LoginResponse> response = userService.verify2fa(request);
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    @PostMapping("/forgot-password/request")
+    public ResponseEntity<ApiResponse<String>> forgotPasswordRequest(@Valid @RequestBody ForgotPasswordRequest request) {
+        ApiResponse<String> response = userService.requestForgotPassword(request);
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    @PostMapping("/forgot-password/reset")
+    public ResponseEntity<ApiResponse<String>> forgotPasswordReset(@Valid @RequestBody ForgotPasswordResetRequest request) {
+        ApiResponse<String> response = userService.resetPasswordWithOtp(request);
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
 }

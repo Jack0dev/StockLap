@@ -218,6 +218,8 @@ public class DataSeeder implements CommandLineRunner {
                     .password(passwordEncoder.encode("Admin@123"))
                     .role(Role.ADMIN)
                     .balance(new BigDecimal("100000000.00")) // 100M VND
+                    .is2faEnabled(true) // Bật 2FA cho admin để test
+                    .isActive(true)
                     .build();
             userRepository.save(admin);
             log.info("👤 Đã tạo tài khoản admin mặc định (admin / Admin@123)");
