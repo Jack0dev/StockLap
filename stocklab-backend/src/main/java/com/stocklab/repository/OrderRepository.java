@@ -38,4 +38,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     // Lấy danh sách stock IDs có lệnh active (cho MatchingScheduler)
     @Query("SELECT DISTINCT o.stock.id FROM Order o WHERE o.status IN :statuses")
     List<Long> findDistinctStockIdsByStatusIn(@Param("statuses") List<OrderStatus> statuses);
+
+    // Dành cho Admin: Lấy toàn bộ lệnh hệ thống
+    Page<Order> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    // Dành cho Admin: Lấy toàn bộ lệnh hệ thống theo trạng thái
+    Page<Order> findByStatusOrderByCreatedAtDesc(OrderStatus status, Pageable pageable);
 }
