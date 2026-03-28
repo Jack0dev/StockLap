@@ -59,6 +59,11 @@ public class User {
     @Column(nullable = false)
     @Builder.Default
     private boolean isActive = true;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean is2faEnabled = false;
+
     @Column(nullable = false, precision = 15, scale = 2)
     @Builder.Default
     private BigDecimal lockedBalance = BigDecimal.ZERO; // Tiền bị lock cho lệnh BUY đang PENDING

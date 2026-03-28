@@ -9,6 +9,7 @@ import OrderHistoryPage from '../pages/OrderHistoryPage'
 import OrderBookPage from '../pages/OrderBookPage'
 import ConditionalOrderPage from '../pages/ConditionalOrderPage'
 import WalletPage from '../pages/WalletPage'
+import BotActivityPage from '../pages/BotActivityPage'
 
 const protectedRoutes = [
   { path: '/profile', element: <ProfilePage /> },
@@ -22,6 +23,7 @@ const protectedRoutes = [
   { path: '/orders', element: <OrderHistoryPage /> },
   { path: '/order-book', element: <OrderBookPage /> },
   { path: '/wallet', element: <WalletPage /> },
+  { path: '/bot-activity', element: <BotActivityPage /> },
 ]
 
 export default protectedRoutes

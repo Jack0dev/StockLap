@@ -7,31 +7,77 @@ import './LoginPage.css';
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [form, setForm] = useState({ username: '', password: '' });
+  const [mode, setMode] = useState('login'); // 'login', 'forgot_request', 'forgot_reset', '2fa'
+  const [tempToken, setTempToken] = useState('');
+  const [form, setForm] = useState({ username: '', password: '', email: '', otpCode: '', newPassword: '' });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     setError('');
+    setSuccess('');
+  };
+
+  const handleLoginSuccess = (data) => {
+    const { token, username, email, fullName, role } = data;
+    login({ username, email, fullName, role }, token);
+    navigate('/dashboard');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess('');
 
     try {
-      const res = await authAPI.login(form);
-      if (res.data.success) {
-        const { token, username, email, fullName, role } = res.data.data;
-        login({ username, email, fullName, role }, token);
-        navigate('/dashboard');
-      } else {
-        setError(res.data.message);
+      if (mode === 'login') {
+        const res = await authAPI.login({ username: form.username, password: form.password });
+        if (res.data.success) {
+          if (res.data.data.is2faRequired) {
+            setMode('2fa');
+            setTempToken(res.data.data.tempToken);
+            setSuccess(res.data.message);
+            setForm({ ...form, otpCode: '' });
+          } else {
+            handleLoginSuccess(res.data.data);
+          }
+        } else {
+          setError(res.data.message);
+        }
+      } else if (mode === '2fa') {
+        const res = await authAPI.verify2fa({ tempToken, otpCode: form.otpCode });
+        if (res.data.success) {
+          handleLoginSuccess(res.data.data);
+        } else {
+          setError(res.data.message);
+        }
+      } else if (mode === 'forgot_request') {
+        const res = await authAPI.forgotPasswordRequest({ username: form.username });
+        if (res.data.success) {
+          setSuccess(res.data.message);
+          setMode('forgot_reset');
+        } else {
+          setError(res.data.message);
+        }
+      } else if (mode === 'forgot_reset') {
+        const res = await authAPI.forgotPasswordReset({
+          username: form.username,
+          otpCode: form.otpCode,
+          newPassword: form.newPassword
+        });
+        if (res.data.success) {
+          setSuccess(res.data.message + ' Vui lòng đăng nhập lại.');
+          setMode('login');
+          setForm({ ...form, password: '' });
+        } else {
+          setError(res.data.message);
+        }
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Đăng nhập thất bại!');
+      setError(err.response?.data?.message || 'Thao tác thất bại!');
     } finally {
       setLoading(false);
     }
@@ -49,7 +95,11 @@ export default function LoginPage() {
             </svg>
           </div>
           <h1 className="logo-text">StockLab</h1>
-          <p className="logo-subtitle">Hệ thống mô phỏng sàn giao dịch chứng khoán</p>
+          <p className="logo-subtitle">
+            {mode === 'login' ? 'Hệ thống mô phỏng sàn giao dịch chứng khoán' : 
+             mode === '2fa' ? 'Xác thực 2 bước (SMS)' :
+             mode === 'forgot_request' ? 'Khôi phục mật khẩu' : 'Đặt lại mật khẩu mới'}
+          </p>
         </div>
 
         {/* Form */}
@@ -62,35 +112,140 @@ export default function LoginPage() {
               {error}
             </div>
           )}
+          {success && (
+            <div className="alert alert-success" style={{ backgroundColor: 'rgba(76, 175, 80, 0.1)', color: '#4caf50', padding: '10px', borderRadius: '8px', marginBottom: '15px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 1a7 7 0 110 14A7 7 0 018 1zm3 4a.75.75 0 01.02 1.06L7.47 9.82a.75.75 0 01-1.08-.02L4.97 8.3a.75.75 0 111.06-1.06l1.23 1.23 3.48-3.48A.75.75 0 0111 5z"/>
+              </svg>
+              {success}
+            </div>
+          )}
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="username">Tên đăng nhập</label>
-            <input
-              id="username"
-              name="username"
-              type="text"
-              className="form-input"
-              placeholder="Nhập tên đăng nhập"
-              value={form.username}
-              onChange={handleChange}
-              required
-              autoFocus
-            />
-          </div>
+          {mode === 'login' && (
+            <>
+              <div className="form-group">
+                <label className="form-label" htmlFor="username">Tên đăng nhập</label>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  className="form-input"
+                  placeholder="Nhập tên đăng nhập"
+                  value={form.username}
+                  onChange={handleChange}
+                  required
+                  autoFocus
+                />
+              </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="password">Mật khẩu</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              className="form-input"
-              placeholder="Nhập mật khẩu"
-              value={form.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
+              <div className="form-group">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label className="form-label" htmlFor="password">Mật khẩu</label>
+                  <button 
+                    type="button" 
+                    className="btn-link" 
+                    style={{ fontSize: '0.85rem', marginBottom: '8px', color: '#2962ff', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                    onClick={() => setMode('forgot_request')}
+                  >
+                    Quên mật khẩu?
+                  </button>
+                </div>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  className="form-input"
+                  placeholder="Nhập mật khẩu"
+                  value={form.password}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </>
+          )}
+
+          {mode === '2fa' && (
+            <div className="form-group">
+              <label className="form-label" htmlFor="otpCode">Mã xác thực SMS (6 chữ số)</label>
+              <input
+                id="otpCode"
+                name="otpCode"
+                type="text"
+                className="form-input"
+                placeholder="Nhập mã OTP từ SMS"
+                value={form.otpCode}
+                onChange={handleChange}
+                required
+                maxLength={6}
+                autoFocus
+              />
+              <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '8px' }}>
+                Mã xác thực đã được gửi đến số điện thoại của bạn. (Kiểm tra Log Backend để lấy mã giả lập)
+              </p>
+            </div>
+          )}
+
+          {mode === 'forgot_request' && (
+            <div className="form-group">
+              <label className="form-label" htmlFor="username">Tên đăng nhập</label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                className="form-input"
+                placeholder="Nhập tên đăng nhập để lấy OTP"
+                value={form.username}
+                onChange={handleChange}
+                required
+                autoFocus
+              />
+            </div>
+          )}
+
+          {mode === 'forgot_reset' && (
+            <>
+              <div className="form-group">
+                <label className="form-label" htmlFor="username">Tên đăng nhập</label>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  className="form-input"
+                  value={form.username}
+                  onChange={handleChange}
+                  disabled
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="otpCode">Mã OTP (từ Email)</label>
+                <input
+                  id="otpCode"
+                  name="otpCode"
+                  type="text"
+                  className="form-input"
+                  placeholder="Nhập mã OTP nhận được"
+                  value={form.otpCode}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="newPassword">Mật khẩu mới</label>
+                <input
+                  id="newPassword"
+                  name="newPassword"
+                  type="password"
+                  className="form-input"
+                  placeholder="Nhập mật khẩu mới"
+                  value={form.newPassword}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </>
+          )}
 
           <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={loading}>
             {loading ? (
@@ -99,7 +254,9 @@ export default function LoginPage() {
                 Đang xử lý...
               </>
             ) : (
-              'Đăng nhập'
+              mode === 'login' ? 'Đăng nhập' : 
+              mode === '2fa' ? 'Xác nhận OTP' :
+              mode === 'forgot_request' ? 'Gửi mã OTP' : 'Xác nhận đặt lại'
             )}
           </button>
         </form>

@@ -18,7 +18,19 @@ public class OtpService {
     private static final long OTP_VALID_DURATION_MINUTES = 5;
 
     private final RedisTemplate<String, String> redisTemplate;
+
+    public RedisTemplate<String, String> getRedisTemplate() {
+        return redisTemplate;
+    }
     private final EmailService emailService;
+
+    public RedisTemplate<String, String> getRedisTemplate() {
+        return redisTemplate;
+    }
+
+    public String generateOtp(String email) {
+        return generateNumericOtp(6);
+    }
 
     // Fallback in case Redis is not running
     private final Map<String, String> localOtpStore = new ConcurrentHashMap<>();

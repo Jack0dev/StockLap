@@ -63,6 +63,12 @@ export default function Navbar() {
       desc: 'Tra cứu lịch sử giao dịch',
       path: '/transactions',
     },
+    {
+      icon: '🤖',
+      title: 'Trading Bot',
+      desc: 'Theo dõi hoạt động bot tạo thanh khoản',
+      path: '/bot-activity',
+    },
   ];
 
   return (
