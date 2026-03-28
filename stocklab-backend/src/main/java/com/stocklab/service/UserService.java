@@ -11,6 +11,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -28,9 +29,13 @@ public class UserService {
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
     private final OtpService otpService;
+    private final SmsService smsService;
+    private final UserDetailsService userDetailsService;
 
     // Cache tạm thời thông tin đăng ký (email -> RegisterRequest)
     private final Map<String, RegisterRequest> pendingRegistrations = new ConcurrentHashMap<>();
+    private static final String PENDING_PASSWORD_PREFIX = "PENDING_PASSWORD:";
+
 
     public ApiResponse<String> register(RegisterRequest request) {
         // Kiểm tra username đã tồn tại
@@ -104,6 +109,124 @@ public class UserService {
         return ApiResponse.success("Xác thực email thành công! Tài khoản đã được tạo và kích hoạt.");
     }
 
+    public ApiResponse<String> verifyChangePasswordOtp(String username, ChangePasswordVerifyRequest request) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+
+        String email = user.getEmail();
+        String key = PENDING_PASSWORD_PREFIX + email;
+
+        // 1. Kiểm tra xem có yêu cầu đổi mật khẩu đang chờ không
+        String newPassword;
+        try {
+            newPassword = (String) otpService.getRedisTemplate().opsForValue().get(key);
+        } catch (Exception e) {
+            return ApiResponse.error("Hệ thống bận, vui lòng thử lại sau.");
+        }
+
+        if (newPassword == null) {
+            return ApiResponse.error("Yêu cầu đổi mật khẩu đã hết hạn hoặc không tồn tại.");
+        }
+
+        // 2. Xác thực OTP
+        boolean isValid = otpService.verifyOtp(email, request.getOtpCode());
+        if (!isValid) {
+            return ApiResponse.error("Mã OTP không chính xác hoặc đã hết hạn.");
+        }
+
+        // 3. Cập nhật mật khẩu chính thức
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        // 4. Dọn dẹp cache
+        try {
+            otpService.getRedisTemplate().delete(key);
+        } catch (Exception ignored) {}
+
+        return ApiResponse.success("Đổi mật khẩu thành công!");
+    }
+
+    public ApiResponse<LoginResponse> verify2fa(Verify2faRequest request) {
+        String key = "TEMP_2FA:" + request.getTempToken();
+        String username = (String) otpService.getRedisTemplate().opsForValue().get(key);
+
+        if (username == null) {
+            return ApiResponse.error("Yêu cầu xác thực đã hết hạn hoặc không tồn tại.");
+        }
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+
+        // Xác thực mã OTP SMS
+        String smsKey = "SMS_OTP:" + username;
+        String savedOtp = (String) otpService.getRedisTemplate().opsForValue().get(smsKey);
+
+        if (savedOtp == null || !savedOtp.equals(request.getOtpCode())) {
+            return ApiResponse.error("Mã xác thực SMS không chính xác hoặc đã hết hạn.");
+        }
+
+        // Dọn dẹp cache
+        otpService.getRedisTemplate().delete(key);
+        otpService.getRedisTemplate().delete(smsKey);
+
+        // Phát hành token chính thức
+        String token = jwtUtils.generateToken(userDetailsService.loadUserByUsername(username));
+        return ApiResponse.success("Xác thực 2 bước thành công!",
+                LoginResponse.builder()
+                        .token(token)
+                        .username(user.getUsername())
+                        .email(user.getEmail())
+                        .fullName(user.getFullName())
+                        .role(user.getRole().toString())
+                        .build());
+    }
+
+    public ApiResponse<String> requestForgotPassword(ForgotPasswordRequest request) {
+        String username = request.getUsername();
+        User user = userRepository.findByUsername(username)
+                .orElse(null);
+        
+        if (user == null) {
+            return ApiResponse.error("Tên đăng nhập không tồn tại trong hệ thống!");
+        }
+
+        String email = user.getEmail();
+        try {
+            otpService.sendOtp(email);
+            return ApiResponse.success("Đã gửi mã OTP khôi phục mật khẩu đến email đăng ký: " + maskEmail(email));
+        } catch (Exception e) {
+            return ApiResponse.error("Lỗi khi gửi mã OTP. Vui lòng thử lại sau.");
+        }
+    }
+
+    private String maskEmail(String email) {
+        int atIndex = email.indexOf("@");
+        if (atIndex <= 1) return email;
+        return email.substring(0, 2) + "****" + email.substring(atIndex);
+    }
+
+    public ApiResponse<String> resetPasswordWithOtp(ForgotPasswordResetRequest request) {
+        String username = request.getUsername();
+        
+        // 1. Tìm User để lấy email xác thực OTP
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Tài khoản không tồn tại."));
+        
+        String email = user.getEmail();
+
+        // 2. Xác thực OTP
+        boolean isValid = otpService.verifyOtp(email, request.getOtpCode());
+        if (!isValid) {
+            return ApiResponse.error("Mã OTP không chính xác hoặc đã hết hạn.");
+        }
+
+        // 3. Cập nhật mật khẩu mới
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        return ApiResponse.success("Mật khẩu đã được đặt lại thành công! Bạn có thể đăng nhập bằng mật khẩu mới.");
+    }
+
     public ApiResponse<LoginResponse> login(LoginRequest request) {
         try {
             Authentication authentication = authenticationManager.authenticate(
@@ -114,10 +237,38 @@ public class UserService {
             );
 
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            String token = jwtUtils.generateToken(userDetails);
-
             User user = userRepository.findByUsername(request.getUsername())
                     .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+
+            // 2. Kiểm tra xác thực 2 bước (SEC-6: SMS 2FA)
+            if (user.is2faEnabled()) {
+                String tempToken = java.util.UUID.randomUUID().toString();
+                String key = "TEMP_2FA:" + tempToken;
+                
+                // Lưu username vào Redis chờ xác thực OTP (TTL 5 phút)
+                try {
+                    otpService.getRedisTemplate().opsForValue().set(key, user.getUsername(), 5, TimeUnit.MINUTES);
+                    
+                    // Gửi mã OTP qua SMS
+                    String otpCode = otpService.generateOtp(user.getEmail()); // Reuse generate logic (it just needs a key)
+                    // Override key for SMS: tied to user + SMS
+                    String smsKey = "SMS_OTP:" + user.getUsername();
+                    otpService.getRedisTemplate().opsForValue().set(smsKey, otpCode, 5, TimeUnit.MINUTES);
+                    
+                    smsService.sendSms(user.getPhone(), "Mã xác thực 2 bước của bạn là: " + otpCode);
+
+                    return ApiResponse.success("Yêu cầu xác thực 2 bước.", 
+                        LoginResponse.builder()
+                            .is2faRequired(true)
+                            .tempToken(tempToken)
+                            .build());
+                } catch (Exception e) {
+                    return ApiResponse.error("Hệ thống xác thực 2 bước đang bận, vui lòng thử lại sau.");
+                }
+            }
+
+            // 3. Trả về JWT Token như dự án gốc
+            String token = jwtUtils.generateToken(userDetails);
 
             LoginResponse loginResponse = LoginResponse.builder()
                     .token(token)

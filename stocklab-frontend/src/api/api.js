@@ -40,6 +40,7 @@ export const authAPI = {
   verifyRegistration: (data) => api.post('/auth/verify-registration', data),
   resendOtp: (email) => api.post('/auth/resend-otp', null, { params: { email } }),
   login: (data) => api.post('/auth/login', data),
+  verify2fa: (data) => api.post('/auth/login/verify-2fa', data),
 };
 
 // ===== User APIs =====

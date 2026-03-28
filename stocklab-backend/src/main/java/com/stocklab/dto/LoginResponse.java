@@ -13,4 +13,6 @@ public class LoginResponse {
     private String email;
     private String fullName;
     private String role;
+    private boolean is2faRequired;
+    private String tempToken; // Token tạm thời để xác thực 2FA
 }
