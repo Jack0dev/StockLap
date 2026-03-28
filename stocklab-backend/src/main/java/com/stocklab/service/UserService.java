@@ -299,6 +299,7 @@ public class UserService {
                 .role(user.getRole().name())
                 .balance(user.getBalance())
                 .lockedBalance(user.getLockedBalance())
+                .availableBalance(user.getAvailableBalance())
                 .isActive(user.isActive())
                 .createdAt(user.getCreatedAt())
                 .build();
@@ -410,6 +411,7 @@ public class UserService {
                         .role(user.getRole().name())
                         .balance(user.getBalance())
                         .lockedBalance(user.getLockedBalance())
+                        .availableBalance(user.getAvailableBalance())
                         .isActive(user.isActive())
                         .createdAt(user.getCreatedAt())
                         .build())

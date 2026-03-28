@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { authAPI } from '../api/api';
 
 const AuthContext = createContext(null);
 
@@ -32,10 +33,23 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('user');
   };
 
+  const fetchUserProfile = async () => {
+    try {
+      const res = await authAPI.getProfile();
+      if (res.data.success) {
+        const userData = res.data.data;
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+    } catch (err) {
+      console.error("Lỗi cập nhật profile:", err);
+    }
+  };
+
   const isAuthenticated = !!token;
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated, loading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, fetchUserProfile, isAuthenticated, loading }}>
       {children}
     </AuthContext.Provider>
   );

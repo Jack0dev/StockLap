@@ -19,6 +19,7 @@ public class UserProfileResponse {
     private String role;
     private BigDecimal balance;
     private BigDecimal lockedBalance;
+    private BigDecimal availableBalance;
     private boolean isActive;
     private LocalDateTime createdAt;
 }

@@ -131,7 +131,22 @@ export default function Navbar() {
               <div className="dropdown-header">
                 <div className="dropdown-name">{user?.fullName || user?.username}</div>
                 <div className="dropdown-email">{user?.email}</div>
-                <div className="dropdown-role">{user?.role}</div>
+                
+                {/* WAL-4: Hiển thị cả 2 số dư */}
+                <div className="dropdown-balances">
+                  <div className="balance-row">
+                    <span className="balance-label">Khả dụng:</span>
+                    <span className="balance-val text-success">
+                      {new Intl.NumberFormat('vi-VN').format(user?.availableBalance || 0)} ₫
+                    </span>
+                  </div>
+                  <div className="balance-row">
+                    <span className="balance-label">Tổng tài khoản:</span>
+                    <span className="balance-val text-muted">
+                      {new Intl.NumberFormat('vi-VN').format(user?.balance || 0)} ₫
+                    </span>
+                  </div>
+                </div>
               </div>
               <div className="dropdown-divider"></div>
               <Link to="/profile" className="dropdown-item" onClick={() => setDropdownOpen(false)}>

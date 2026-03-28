@@ -121,8 +121,12 @@ export default function ProfilePage() {
           </div>
           <div className="profile-stats">
             <div className="stat-item">
-              <span className="stat-label">Số dư tài khoản</span>
-              <span className="stat-value text-success">{formatBalance(profile.balance)}</span>
+              <span className="stat-label">Số dư khả dụng</span>
+              <span className="stat-value text-success">{formatBalance(profile.availableBalance)}</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Tổng tài khoản</span>
+              <span className="stat-value text-muted" style={{fontSize: '18px'}}>{formatBalance(profile.balance)}</span>
             </div>
             <div className="stat-item">
               <span className="stat-label">Ngày tham gia</span>

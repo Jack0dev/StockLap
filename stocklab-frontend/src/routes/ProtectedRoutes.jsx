@@ -8,6 +8,7 @@ import WatchlistPage from '../pages/WatchlistPage'
 import OrderHistoryPage from '../pages/OrderHistoryPage'
 import OrderBookPage from '../pages/OrderBookPage'
 import ConditionalOrderPage from '../pages/ConditionalOrderPage'
+import WalletPage from '../pages/WalletPage'
 import BotActivityPage from '../pages/BotActivityPage'
 
 const protectedRoutes = [
@@ -21,6 +22,7 @@ const protectedRoutes = [
   { path: '/watchlist', element: <WatchlistPage /> },
   { path: '/orders', element: <OrderHistoryPage /> },
   { path: '/order-book', element: <OrderBookPage /> },
+  { path: '/wallet', element: <WalletPage /> },
   { path: '/bot-activity', element: <BotActivityPage /> },
 ]
 

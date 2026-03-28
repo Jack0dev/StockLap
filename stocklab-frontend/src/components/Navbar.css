@@ -272,6 +272,36 @@
   background: var(--border);
 }
 
+.dropdown-balances {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  font-size: 0.8125rem;
+}
+
+.balance-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.balance-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.balance-val {
+  font-weight: 600;
+}
+
+.text-success {
+  color: #00c853 !important;
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
 .dropdown-item {
   display: flex;
   align-items: center;
