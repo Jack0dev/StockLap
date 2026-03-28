@@ -36,13 +36,13 @@
 
 ---
 
-## ❌ Module 2 — Nạp/Rút tiền (0/5)
+## ✅ Module 2 — Nạp/Rút tiền (5/5)
 
-- [ ] **WAL-1** Nạp tiền (Deposit)
-- [ ] **WAL-2** Rút tiền (Withdraw + OTP)
-- [ ] **WAL-3** Lịch sử nạp/rút
-- [ ] **WAL-4** Số dư khả dụng vs Tổng số dư
-- [ ] **WAL-5** Giới hạn nạp/rút
+- [x] **WAL-1** Nạp tiền (Deposit)
+- [x] **WAL-2** Rút tiền (Withdraw + OTP)
+- [x] **WAL-3** Lịch sử nạp/rút
+- [x] **WAL-4** Số dư khả dụng vs Tổng số dư
+- [x] **WAL-5** Giới hạn nạp/rút
 
 ---
 

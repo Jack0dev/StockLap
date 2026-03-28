@@ -1,0 +1,183 @@
+package com.stocklab.service;
+
+import com.stocklab.dto.ApiResponse;
+import com.stocklab.dto.DepositRequest;
+import com.stocklab.dto.WalletTransactionResponse;
+import com.stocklab.model.User;
+import com.stocklab.model.WalletTransaction;
+import com.stocklab.model.WalletTransactionStatus;
+import com.stocklab.model.WalletTransactionType;
+import com.stocklab.repository.UserRepository;
+import com.stocklab.repository.WalletTransactionRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class WalletService {
+
+    private final UserRepository userRepository;
+    private final WalletTransactionRepository walletTransactionRepository;
+    private final OtpService otpService;
+
+    @Transactional
+    public ApiResponse<WalletTransactionResponse> deposit(String username, DepositRequest request) {
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) {
+            return ApiResponse.error("Không tìm thấy người dùng");
+        }
+
+        if (request.getAmount() == null || request.getAmount().doubleValue() < 10000) {
+            return ApiResponse.error("Số tiền nạp tối thiểu là 10.000 VNĐ");
+        }
+
+        if (request.getAmount().doubleValue() > 1000000000) {
+            return ApiResponse.error("Số tiền nạp tối đa là 1.000.000.000 VNĐ/lần");
+        }
+
+        // Sinh mã giao dịch tự động dạng SL-XXXXXX
+        String randomCode = "SL" + java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        
+        // Tạo giao dịch
+        WalletTransaction transaction = WalletTransaction.builder()
+                .user(user)
+                .type(WalletTransactionType.DEPOSIT)
+                .amount(request.getAmount())
+                .status(WalletTransactionStatus.PENDING) // Lưu PENDING chờ duyệt Webhook
+                .bankAccount(request.getBankAccount())
+                .bankName(request.getBankName())
+                .transactionCode(randomCode)
+                .note("Nạp tiền " + (request.getBankName() != null ? "qua " + request.getBankName() : "vào tài khoản"))
+                .build();
+
+        // KHÔNG cộng tiền ngay lúc này! Tiền chỉ cộng khi Webhook báo về.
+        
+        WalletTransaction savedTx = walletTransactionRepository.save(transaction);
+
+        return ApiResponse.success("Đã tạo lệnh nạp. Vui lòng chuyển khoản đính kèm mã để hệ thống duyệt!", toResponse(savedTx));
+    }
+
+    @Transactional
+    public ApiResponse<WalletTransactionResponse> withdraw(String username, com.stocklab.dto.WithdrawRequest request) {
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) {
+            return ApiResponse.error("Không tìm thấy người dùng");
+        }
+
+        // Kiểm tra OTP
+        if (request.getOtpCode() == null || request.getOtpCode().isEmpty()) {
+            return ApiResponse.error("Vui lòng nhập mã xác nhận OTP");
+        }
+        
+        if (!otpService.verifyOtp(user.getEmail(), request.getOtpCode())) {
+            return ApiResponse.error("Mã OTP không hợp lệ hoặc đã hết hạn!");
+        }
+
+        if (request.getAmount() == null || request.getAmount().doubleValue() < 10000) {
+            return ApiResponse.error("Số tiền rút tối thiểu là 10.000 VNĐ");
+        }
+
+        if (request.getAmount().doubleValue() > 50000000) {
+            return ApiResponse.error("Số tiền rút tối đa là 50.000.000 VNĐ/lần");
+        }
+
+        if (user.getAvailableBalance().compareTo(request.getAmount()) < 0) {
+            return ApiResponse.error("Số dư khả dụng không đủ để rút số tiền này");
+        }
+
+        // Tạo giao dịch rút
+        WalletTransaction transaction = WalletTransaction.builder()
+                .user(user)
+                .type(WalletTransactionType.WITHDRAW)
+                .amount(request.getAmount())
+                .status(WalletTransactionStatus.PENDING) // Chuyển sang duyệt thủ công bởi Admin
+                .bankAccount(request.getBankAccount())
+                .bankName(request.getBankName())
+                .note("Rút tiền về " + request.getBankName())
+                .build();
+
+        // Trừ tiền user ĐỂ GIAM TIỀN LẠI (Nếu Admin Reject sẽ cộng hoàn sau)
+        user.setBalance(user.getBalance().subtract(request.getAmount()));
+        
+        userRepository.save(user);
+        WalletTransaction savedTx = walletTransactionRepository.save(transaction);
+
+        return ApiResponse.success("Tạo lệnh rút thành công! Vui lòng chờ hệ thống chuyển khoản.", toResponse(savedTx));
+    }
+
+    @Transactional
+    public ApiResponse<String> processMockWebhook(com.stocklab.dto.MockWebhookRequest request) {
+        String desc = request.getDescription() != null ? request.getDescription().toUpperCase() : "";
+        String targetTxCode = null;
+        
+        // Trích xuất mã giao dịch SL-XXXXXX (có dấu gạch ngang HOẶC không dấu gạch ngang cũng chấp nhận)
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("(SL-?[A-Z0-9]{6})");
+        java.util.regex.Matcher matcher = pattern.matcher(desc);
+        
+        if (matcher.find()) {
+            targetTxCode = matcher.group(1).replace("-", ""); // Normalize về dạng sát SLXXXXXX nếu trùng
+            // Phục hồi lại dấu gạch ngang vì lúc tạo mình dùng SLXXXXXX hoặc SL-XXXXXX
+            // Wait, lúc nãy mình sinh là "SL" + randomCode. Ví dụ "SL1A2B3C" (8 ký tự).
+            // Format nãy là: SL + 6 ký tự. Total = 8 chars.
+            targetTxCode = matcher.group(1); 
+        }
+        
+        if (targetTxCode == null) {
+            return ApiResponse.error("Không tìm thấy cú pháp Mã giao dịch (Cần chứa SLxxxxxx) trong nội dung CK");
+        }
+
+        WalletTransaction targetTx = walletTransactionRepository.findByTransactionCode(targetTxCode).orElse(null);
+        
+        if (targetTx == null || targetTx.getStatus() != WalletTransactionStatus.PENDING || targetTx.getType() != WalletTransactionType.DEPOSIT) {
+             return ApiResponse.error("Không tìm thấy lệnh Nạp Tiền PENDING nào khớp với mã: " + targetTxCode);
+        }
+        
+        User user = targetTx.getUser();
+        
+        if (targetTx != null) {
+            targetTx.setStatus(WalletTransactionStatus.COMPLETED);
+            targetTx.setNote("Khớp lệnh Webhook Tự động. Mã GD: " + request.getTransactionId());
+            walletTransactionRepository.save(targetTx);
+        }
+
+        // BƠM TIỀN CHO USER
+        user.setBalance(user.getBalance().add(targetTx.getAmount()));
+        userRepository.save(user);
+
+        return ApiResponse.success("Bơm tiền thành công rực rỡ cho mã đơn: " + targetTxCode, null);
+    }
+
+    public ApiResponse<String> sendWithdrawOtp(String username) {
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) {
+            return ApiResponse.error("Không tìm thấy người dùng");
+        }
+        return otpService.sendOtp(user.getEmail());
+    }
+
+    public ApiResponse<Page<WalletTransactionResponse>> getHistory(String username, Pageable pageable) {
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) {
+            return ApiResponse.error("Không tìm thấy người dùng");
+        }
+        Page<WalletTransaction> page = walletTransactionRepository.findByUserIdOrderByCreatedAtDesc(user.getId(), pageable);
+        return ApiResponse.success("Lấy lịch sử giao dịch tiền thành công", page.map(this::toResponse));
+    }
+
+    WalletTransactionResponse toResponse(WalletTransaction tx) {
+        return WalletTransactionResponse.builder()
+                .id(tx.getId())
+                .type(tx.getType().name())
+                .amount(tx.getAmount())
+                .status(tx.getStatus().name())
+                .bankAccount(tx.getBankAccount())
+                .bankName(tx.getBankName())
+                .transactionCode(tx.getTransactionCode())
+                .note(tx.getNote())
+                .createdAt(tx.getCreatedAt())
+                .build();
+    }
+}

@@ -40,6 +40,9 @@ export const authAPI = {
   verifyRegistration: (data) => api.post('/auth/verify-registration', data),
   resendOtp: (email) => api.post('/auth/resend-otp', null, { params: { email } }),
   login: (data) => api.post('/auth/login', data),
+  getProfile: () => api.get('/users/profile'),
+  updateProfile: (data) => api.put('/users/profile', data),
+  changePassword: (data) => api.put('/users/change-password', data),
 };
 
 // ===== User APIs =====
@@ -117,6 +120,14 @@ export const adminAPI = {
   getAllUsers: () => api.get('/admin/users'),
   toggleUserLock: (userId) => api.put(`/admin/users/${userId}/toggle-lock`),
   changeUserRole: (userId, role) => api.put(`/admin/users/${userId}/role`, { role }),
+};
+
+// ===== Wallet APIs =====
+export const walletAPI = {
+  deposit: (data) => api.post('/wallet/deposit', data),
+  withdraw: (data) => api.post('/wallet/withdraw', data),
+  requestWithdrawOtp: () => api.post('/wallet/withdraw/request-otp'),
+  getHistory: (page = 0, size = 20) => api.get('/wallet/history', { params: { page, size } }),
 };
 
 export default api;
