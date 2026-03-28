@@ -18,6 +18,10 @@ public class OtpService {
     private static final long OTP_VALID_DURATION_MINUTES = 5;
 
     private final RedisTemplate<String, String> redisTemplate;
+
+    public RedisTemplate<String, String> getRedisTemplate() {
+        return redisTemplate;
+    }
     private final EmailService emailService;
 
     // Fallback in case Redis is not running

@@ -33,12 +33,24 @@ public class UserController {
         return ResponseEntity.badRequest().body(response);
     }
 
-    @PutMapping("/change-password")
-    public ResponseEntity<ApiResponse<String>> changePassword(
+    @PostMapping("/change-password/request")
+    public ResponseEntity<ApiResponse<String>> requestChangePassword(
             Authentication authentication,
             @Valid @RequestBody ChangePasswordRequest request
     ) {
-        ApiResponse<String> response = userService.changePassword(authentication.getName(), request);
+        ApiResponse<String> response = userService.requestChangePassword(authentication.getName(), request);
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    @PostMapping("/change-password/verify")
+    public ResponseEntity<ApiResponse<String>> verifyChangePassword(
+            Authentication authentication,
+            @Valid @RequestBody ChangePasswordVerifyRequest request
+    ) {
+        ApiResponse<String> response = userService.verifyChangePasswordOtp(authentication.getName(), request);
         if (response.isSuccess()) {
             return ResponseEntity.ok(response);
         }
