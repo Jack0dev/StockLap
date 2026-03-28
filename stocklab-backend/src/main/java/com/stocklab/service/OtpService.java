@@ -24,10 +24,6 @@ public class OtpService {
     }
     private final EmailService emailService;
 
-    public RedisTemplate<String, String> getRedisTemplate() {
-        return redisTemplate;
-    }
-
     public String generateOtp(String email) {
         return generateNumericOtp(6);
     }

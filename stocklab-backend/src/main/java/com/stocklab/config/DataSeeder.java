@@ -90,6 +90,25 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         log.info("🎉 Seed user hoàn tất! Đã tạo 5 tài khoản.");
+
+        // [BOT-1] Seed Bot User (SEC-6 / Module 6)
+        seedBotUser();
+    }
+
+    private void seedBotUser() {
+        if (!userRepository.existsByUsername("bot_liquidity")) {
+            User bot = User.builder()
+                    .username("bot_liquidity")
+                    .email("bot@stocklab.com")
+                    .fullName("Liquidity Bot")
+                    .password(passwordEncoder.encode("Bot@123"))
+                    .role(Role.USER) // Role USER để có thể đặt lệnh bình thường
+                    .balance(new BigDecimal("1000000000.00")) // 1 Tỷ VND để tạo thanh khoản
+                    .isActive(true)
+                    .build();
+            userRepository.save(bot);
+            log.info("🤖 Đã tạo Bot User: bot_liquidity (1,000,000,000 VND)");
+        }
     }
 
     private void seedStocks() {
@@ -138,6 +157,31 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         log.info("🎉 Seed cổ phiếu hoàn tất! Đã tạo {} cổ phiếu.", seedData.size());
+
+        // [BOT-1] Cấp chứng khoán cho Bot để có thể BÁN
+        seedBotPortfolio();
+    }
+
+    private void seedBotPortfolio() {
+        User bot = userRepository.findByUsername("bot_liquidity").orElse(null);
+        if (bot == null) return;
+
+        if (portfolioRepository.existsByUserId(bot.getId())) {
+            return;
+        }
+
+        List<Stock> stocks = stockRepository.findAll();
+        for (Stock stock : stocks) {
+            Portfolio p = Portfolio.builder()
+                    .user(bot)
+                    .stock(stock)
+                    .quantity(10000) // Cấp mỗi mã 10k cổ phiếu cho Bot
+                    .lockedQuantity(0)
+                    .avgBuyPrice(stock.getReferencePrice())
+                    .build();
+            portfolioRepository.save(p);
+        }
+        log.info("🤖 Đã cấp danh mục đầu tư ban đầu cho bot_liquidity (10k CP mỗi mã)");
     }
 
     private Stock createStock(StockSeedData data, Random random) {
@@ -258,42 +302,6 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     // ===== [BOT-1] Trading Bot User =====
-
-    private void seedBotUser() {
-        if (!userRepository.existsByUsername("bot_liquidity")) {
-            User bot = User.builder()
-                    .username("bot_liquidity")
-                    .email("bot@stocklab.com")
-                    .fullName("Liquidity Bot")
-                    .password(passwordEncoder.encode("Bot@123"))
-                    .role(Role.USER)
-                    .balance(new BigDecimal("1000000000.00")) // 1 tỷ VND
-                    .isActive(true)
-                    .build();
-            userRepository.save(bot);
-            log.info("🤖 Đã tạo Bot User: bot_liquidity (1,000,000,000 VND)");
-        }
-        seedBotPortfolio();
-    }
-
-    private void seedBotPortfolio() {
-        User bot = userRepository.findByUsername("bot_liquidity").orElse(null);
-        if (bot == null) return;
-        if (portfolioRepository.existsByUserId(bot.getId())) return;
-
-        List<Stock> stocks = stockRepository.findAll();
-        for (Stock stock : stocks) {
-            Portfolio p = Portfolio.builder()
-                    .user(bot)
-                    .stock(stock)
-                    .quantity(10000)
-                    .lockedQuantity(0)
-                    .avgBuyPrice(stock.getReferencePrice())
-                    .build();
-            portfolioRepository.save(p);
-        }
-        log.info("🤖 Đã cấp 10,000 CP mỗi mã cho bot_liquidity");
-    }
 
     private void seedPortfolios() {
         if (portfolioRepository.count() > 0) {

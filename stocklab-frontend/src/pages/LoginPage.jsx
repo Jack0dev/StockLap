@@ -9,6 +9,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [mode, setMode] = useState('login'); // 'login', 'forgot_request', 'forgot_reset', '2fa'
   const [tempToken, setTempToken] = useState('');
+  const [qrCodeBase64, setQrCodeBase64] = useState('');
   const [form, setForm] = useState({ username: '', password: '', email: '', otpCode: '', newPassword: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -39,6 +40,7 @@ export default function LoginPage() {
           if (res.data.data.is2faRequired) {
             setMode('2fa');
             setTempToken(res.data.data.tempToken);
+            setQrCodeBase64(res.data.data.qrCodeBase64 || '');
             setSuccess(res.data.message);
             setForm({ ...form, otpCode: '' });
           } else {
@@ -166,21 +168,41 @@ export default function LoginPage() {
 
           {mode === '2fa' && (
             <div className="form-group">
-              <label className="form-label" htmlFor="otpCode">Mã xác thực SMS (6 chữ số)</label>
+              {qrCodeBase64 && (
+                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                  <p style={{ fontSize: '0.9rem', color: '#ccc', marginBottom: '12px' }}>
+                    Quét mã QR bên dưới bằng ứng dụng <strong style={{ color: '#fff' }}>Google Authenticator</strong>
+                  </p>
+                  <img
+                    src={qrCodeBase64}
+                    alt="QR Code"
+                    style={{
+                      width: '220px',
+                      height: '220px',
+                      borderRadius: '12px',
+                      border: '2px solid rgba(41, 98, 255, 0.5)',
+                      padding: '8px',
+                      background: '#fff'
+                    }}
+                  />
+                </div>
+              )}
+              <label className="form-label" htmlFor="otpCode">Mã OTP từ Google Authenticator (6 chữ số)</label>
               <input
                 id="otpCode"
                 name="otpCode"
                 type="text"
                 className="form-input"
-                placeholder="Nhập mã OTP từ SMS"
+                placeholder="Nhập mã 6 chữ số từ ứng dụng"
                 value={form.otpCode}
                 onChange={handleChange}
                 required
                 maxLength={6}
                 autoFocus
+                style={{ textAlign: 'center', fontSize: '1.5rem', letterSpacing: '8px', fontWeight: 'bold' }}
               />
-              <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '8px' }}>
-                Mã xác thực đã được gửi đến số điện thoại của bạn. (Kiểm tra Log Backend để lấy mã giả lập)
+              <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '10px', textAlign: 'center' }}>
+                Mở Google Authenticator trên điện thoại → Nhập mã 6 số hiển thị
               </p>
             </div>
           )}

@@ -26,6 +26,7 @@ public class TradingBotService {
 
     private final OrderService orderService;
     private final StockRepository stockRepository;
+    private final WebSocketService webSocketService; // Injected WS service
     private final Random random = new Random();
 
     @Value("${app.bot.enabled:false}")
@@ -82,7 +83,7 @@ public class TradingBotService {
             orderService.placeOrder(botUsername, request);
             totalOrdersPlaced.incrementAndGet();
 
-            // 6. Lưu log
+            // 6. Lưu log bộ nhớ
             BotOrderLog entry = new BotOrderLog(
                     stock.getTicker(), side.name(), quantity,
                     price, LocalDateTime.now(), "SUCCESS"
@@ -94,6 +95,11 @@ public class TradingBotService {
 
             log.info("🤖 Bot [{}] {} {} CP {} @ {}",
                     botUsername, side, quantity, stock.getTicker(), price);
+
+            // 7. 🔥 Broadcast qua WebSocket để frontend nhận liền
+            if (webSocketService != null) {
+                webSocketService.broadcastBotOrder(stock.getTicker(), side.name(), quantity, price);
+            }
 
         } catch (Exception e) {
             log.error("❌ Bot error: {}", e.getMessage());

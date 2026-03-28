@@ -30,11 +30,15 @@ public class UserService {
     private final JwtUtils jwtUtils;
     private final OtpService otpService;
     private final SmsService smsService;
+    private final TotpService totpService;
     private final UserDetailsService userDetailsService;
 
     // Cache tạm thời thông tin đăng ký (email -> RegisterRequest)
     private final Map<String, RegisterRequest> pendingRegistrations = new ConcurrentHashMap<>();
     private static final String PENDING_PASSWORD_PREFIX = "PENDING_PASSWORD:";
+
+    // Fallback 2FA stores (khi Redis không khả dụng)
+    private final Map<String, String> local2faStore = new ConcurrentHashMap<>();
 
 
     public ApiResponse<String> register(RegisterRequest request) {
@@ -148,8 +152,17 @@ public class UserService {
 
     public ApiResponse<LoginResponse> verify2fa(Verify2faRequest request) {
         String key = "TEMP_2FA:" + request.getTempToken();
-        String username = (String) otpService.getRedisTemplate().opsForValue().get(key);
-
+        
+        // Lấy username từ Redis hoặc fallback RAM
+        String username = null;
+        try {
+            username = (String) otpService.getRedisTemplate().opsForValue().get(key);
+        } catch (Exception e) {
+            username = local2faStore.get(key);
+        }
+        if (username == null) {
+            username = local2faStore.get(key);
+        }
         if (username == null) {
             return ApiResponse.error("Yêu cầu xác thực đã hết hạn hoặc không tồn tại.");
         }
@@ -157,17 +170,21 @@ public class UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
-        // Xác thực mã OTP SMS
-        String smsKey = "SMS_OTP:" + username;
-        String savedOtp = (String) otpService.getRedisTemplate().opsForValue().get(smsKey);
-
-        if (savedOtp == null || !savedOtp.equals(request.getOtpCode())) {
-            return ApiResponse.error("Mã xác thực SMS không chính xác hoặc đã hết hạn.");
+        // Xác thực mã TOTP từ Google Authenticator
+        try {
+            int totpCode = Integer.parseInt(request.getOtpCode());
+            if (!totpService.verifyCode(user.getTwoFaSecret(), totpCode)) {
+                return ApiResponse.error("Mã xác thực không chính xác. Vui lòng thử lại.");
+            }
+        } catch (NumberFormatException e) {
+            return ApiResponse.error("Mã xác thực phải là số.");
         }
 
         // Dọn dẹp cache
-        otpService.getRedisTemplate().delete(key);
-        otpService.getRedisTemplate().delete(smsKey);
+        try {
+            otpService.getRedisTemplate().delete(key);
+        } catch (Exception ignored) {}
+        local2faStore.remove(key);
 
         // Phát hành token chính thức
         String token = jwtUtils.generateToken(userDetailsService.loadUserByUsername(username));
@@ -240,45 +257,38 @@ public class UserService {
             User user = userRepository.findByUsername(request.getUsername())
                     .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
-            // 2. Kiểm tra xác thực 2 bước (SEC-6: SMS 2FA)
-            if (user.is2faEnabled()) {
+            // 2. Xác thực 2 bước bằng Google Authenticator (TOTP)
+            {
                 String tempToken = java.util.UUID.randomUUID().toString();
                 String key = "TEMP_2FA:" + tempToken;
-                
-                // Lưu username vào Redis chờ xác thực OTP (TTL 5 phút)
+
+                // Lưu username tạm vào Redis/RAM
                 try {
                     otpService.getRedisTemplate().opsForValue().set(key, user.getUsername(), 5, TimeUnit.MINUTES);
-                    
-                    // Gửi mã OTP qua SMS
-                    String otpCode = otpService.generateOtp(user.getEmail()); // Reuse generate logic (it just needs a key)
-                    // Override key for SMS: tied to user + SMS
-                    String smsKey = "SMS_OTP:" + user.getUsername();
-                    otpService.getRedisTemplate().opsForValue().set(smsKey, otpCode, 5, TimeUnit.MINUTES);
-                    
-                    smsService.sendSms(user.getPhone(), "Mã xác thực 2 bước của bạn là: " + otpCode);
-
-                    return ApiResponse.success("Yêu cầu xác thực 2 bước.", 
-                        LoginResponse.builder()
-                            .is2faRequired(true)
-                            .tempToken(tempToken)
-                            .build());
                 } catch (Exception e) {
-                    return ApiResponse.error("Hệ thống xác thực 2 bước đang bận, vui lòng thử lại sau.");
+                    local2faStore.put(key, user.getUsername());
                 }
+
+                // Nếu user chưa có secret → tạo mới + trả QR code
+                String qrCodeBase64 = null;
+                if (user.getTwoFaSecret() == null || user.getTwoFaSecret().isEmpty()) {
+                    String secret = totpService.generateSecret();
+                    user.setTwoFaSecret(secret);
+                    userRepository.save(user);
+                    qrCodeBase64 = totpService.generateQrCodeBase64(user.getUsername(), secret);
+                } else {
+                    // User đã thiết lập → vẫn trả QR để tiện scan lại nếu cần
+                    qrCodeBase64 = totpService.generateQrCodeBase64(user.getUsername(), user.getTwoFaSecret());
+                }
+
+                return ApiResponse.success("Vui lòng quét mã QR bằng Google Authenticator và nhập mã OTP.",
+                    LoginResponse.builder()
+                        .is2faRequired(true)
+                        .tempToken(tempToken)
+                        .qrCodeBase64(qrCodeBase64)
+                        .build());
             }
 
-            // 3. Trả về JWT Token như dự án gốc
-            String token = jwtUtils.generateToken(userDetails);
-
-            LoginResponse loginResponse = LoginResponse.builder()
-                    .token(token)
-                    .username(user.getUsername())
-                    .email(user.getEmail())
-                    .fullName(user.getFullName())
-                    .role(user.getRole().name())
-                    .build();
-
-            return ApiResponse.success("Đăng nhập thành công!", loginResponse);
         } catch (DisabledException e) {
             return ApiResponse.error("Tài khoản của bạn chưa được kích hoạt hoặc đã bị khóa!");
         } catch (Exception e) {
@@ -329,8 +339,6 @@ public class UserService {
     }
 
     // Cache tạm thời thông tin đổi mật khẩu (email -> newPassword) trong Redis
-    private static final String PENDING_PASSWORD_PREFIX = "PENDING_PWD:";
-
     public ApiResponse<String> requestChangePassword(String username, ChangePasswordRequest request) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User không tồn tại"));
@@ -361,43 +369,6 @@ public class UserService {
         } catch (Exception e) {
             return ApiResponse.error("Lỗi khi gửi OTP. Vui lòng thử lại.");
         }
-    }
-
-    public ApiResponse<String> verifyChangePasswordOtp(String username, ChangePasswordVerifyRequest request) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
-
-        String email = user.getEmail();
-        String key = PENDING_PASSWORD_PREFIX + email;
-
-        // 1. Kiểm tra xem có yêu cầu đổi mật khẩu đang chờ không
-        String newPassword;
-        try {
-            newPassword = (String) otpService.getRedisTemplate().opsForValue().get(key);
-        } catch (Exception e) {
-            return ApiResponse.error("Hệ thống bận, vui lòng thử lại sau.");
-        }
-
-        if (newPassword == null) {
-            return ApiResponse.error("Yêu cầu đổi mật khẩu đã hết hạn hoặc không tồn tại.");
-        }
-
-        // 2. Xác thực OTP
-        boolean isValid = otpService.verifyOtp(email, request.getOtpCode());
-        if (!isValid) {
-            return ApiResponse.error("Mã OTP không chính xác hoặc đã hết hạn.");
-        }
-
-        // 3. Cập nhật mật khẩu chính thức
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-
-        // 4. Dọn dẹp cache
-        try {
-            otpService.getRedisTemplate().delete(key);
-        } catch (Exception ignored) {}
-
-        return ApiResponse.success("Đổi mật khẩu thành công!");
     }
 
     public ApiResponse<List<UserProfileResponse>> getAllUsers() {

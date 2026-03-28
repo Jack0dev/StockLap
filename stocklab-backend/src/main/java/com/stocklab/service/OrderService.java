@@ -30,12 +30,7 @@ public class OrderService {
      */
     @Transactional
     public ApiResponse<OrderResponse> placeOrder(String username, OrderRequest request) {
-        // TODO: Tạm tắt OTP để test Matching Engine — bật lại khi làm Module 1
-        // if (!otpService.verifyOtp(username, request.getOtpCode())) {
-        //     return ApiResponse.error("Mã OTP không hợp lệ hoặc đã hết hạn!");
-        // }
-
-        // 2. Tìm user
+        // 1. Tìm user
         User user = userRepository.findByUsername(username).orElse(null);
         if (user == null) {
             return ApiResponse.error("Không tìm thấy người dùng");
@@ -63,7 +58,17 @@ public class OrderService {
                     .error("Kiểu lệnh không hợp lệ: " + request.getOrderType() + ". Chỉ chấp nhận MARKET hoặc LIMIT");
         }
 
-        // 4. Validate price cho LIMIT order
+        // 4. XÁC THỰC OTP CHO LỆNH BÁN (gửi qua email)
+        if (side == OrderSide.SELL) {
+            if (request.getOtpCode() == null || request.getOtpCode().isBlank()) {
+                return ApiResponse.error("Lệnh BÁN yêu cầu mã OTP xác thực!");
+            }
+            if (!otpService.verifyOtp(user.getEmail(), request.getOtpCode())) {
+                return ApiResponse.error("Mã OTP không chính xác hoặc đã hết hạn!");
+            }
+        }
+
+        // 5. Validate price cho LIMIT order
         BigDecimal price;
         if (orderType == OrderType.LIMIT) {
             if (request.getPrice() == null || request.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
@@ -75,12 +80,12 @@ public class OrderService {
             price = stock.getCurrentPrice();
         }
 
-        // 5. Validate số lượng
+        // 6. Validate số lượng
         if (request.getQuantity() == null || request.getQuantity() <= 0) {
             return ApiResponse.error("Số lượng phải lớn hơn 0");
         }
 
-        // 6. Validate & Lock tài sản
+        // 7. Validate & Lock tài sản
         if (side == OrderSide.BUY) {
             return placeBuyOrder(user, stock, orderType, price, request.getQuantity());
         } else {

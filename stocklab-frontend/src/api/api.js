@@ -44,6 +44,8 @@ export const authAPI = {
   updateProfile: (data) => api.put('/users/profile', data),
   changePassword: (data) => api.put('/users/change-password', data),
   verify2fa: (data) => api.post('/auth/login/verify-2fa', data),
+  forgotPasswordRequest: (data) => api.post('/auth/forgot-password/request', data),
+  forgotPasswordReset: (data) => api.post('/auth/forgot-password/reset', data),
 };
 
 // ===== User APIs =====

@@ -141,7 +141,7 @@ export default function TradingPage() {
       const res = await otpAPI.sendOtp();
       if (res.data.success) {
         setOtpSent(true);
-        setMessage({ type: 'success', text: 'Đã gửi mã OTP! (Mock: 123456)' });
+        setMessage({ type: 'success', text: 'Đã gửi mã OTP đến email của bạn!' });
       }
     } catch (err) {
       setMessage({ type: 'error', text: 'Lỗi gửi OTP' });
@@ -438,17 +438,19 @@ export default function TradingPage() {
               </div>
             )}
 
-            {/* OTP Verification */}
+            {/* OTP Verification — chỉ hiện khi BÁN */}
+            {activeTab === 'SELL' && (
             <div className="form-group otp-section">
-              <label>🔐 Xác thực OTP</label>
+              <label>🔐 Xác thực OTP (gửi qua Email)</label>
               <div className="otp-row">
                 <input
                   type="text"
                   className="form-input otp-input"
-                  placeholder="Nhập mã OTP"
+                  placeholder="Nhập mã OTP từ email"
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value)}
                   maxLength={6}
+                  style={{ textAlign: 'center', fontSize: '1.2rem', letterSpacing: '6px', fontWeight: 'bold' }}
                 />
                 <button
                   type="button"
@@ -456,18 +458,19 @@ export default function TradingPage() {
                   onClick={handleSendOtp}
                   disabled={otpLoading}
                 >
-                  {otpLoading ? '...' : otpSent ? '✓ Đã gửi' : 'Gửi mã'}
+                  {otpLoading ? '...' : otpSent ? '✓ Đã gửi' : '📧 Gửi mã'}
                 </button>
               </div>
               {otpSent && (
-                <div className="otp-hint">💡 Mock OTP: <strong>123456</strong></div>
+                <div className="otp-hint">📧 Kiểm tra hộp thư email để lấy mã OTP</div>
               )}
             </div>
+            )}
 
             {/* Trade Button */}
             <button
               className={`trade-btn ${activeTab === 'BUY' ? 'buy' : 'sell'}`}
-              disabled={!canTrade() || loading || !otpCode}
+              disabled={!canTrade() || loading || (activeTab === 'SELL' && !otpCode)}
               onClick={handlePlaceOrder}
             >
               {loading ? (
