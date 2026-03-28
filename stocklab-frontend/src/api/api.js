@@ -119,4 +119,10 @@ export const adminAPI = {
   changeUserRole: (userId, role) => api.put(`/admin/users/${userId}/role`, { role }),
 };
 
+// ===== Bot APIs (Module 6) =====
+export const botAPI = {
+  getStatus: () => api.get('/bot/status'),
+  getActivity: () => api.get('/bot/activity'),
+};
+
 export default api;
