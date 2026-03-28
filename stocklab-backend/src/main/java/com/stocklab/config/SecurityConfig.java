@@ -38,6 +38,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/stocks/**").permitAll()
                         .requestMatchers("/api/orders/book/**").permitAll()
+                        .requestMatchers("/api/bot/**").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/trade/**").authenticated()
                         .requestMatchers("/api/watchlist/**").authenticated()
                         .anyRequest().authenticated()
