@@ -47,6 +47,7 @@ public class DataSeeder implements CommandLineRunner {
         unlockAllExistingUsers();
         seedStocks();
         unlockAllExistingStocks();
+        seedBotUser(); // [BOT-1] Module 6
         seedPortfolios();
         seedWatchlists();
     }
@@ -252,6 +253,44 @@ public class DataSeeder implements CommandLineRunner {
             stockRepository.saveAll(stocks);
             log.info("🔓 Đã tự động mở khoá (isActive = true) cho các mã cổ phiếu cũ do cập nhật cấu trúc Database.");
         }
+    }
+
+    // ===== [BOT-1] Trading Bot User =====
+
+    private void seedBotUser() {
+        if (!userRepository.existsByUsername("bot_liquidity")) {
+            User bot = User.builder()
+                    .username("bot_liquidity")
+                    .email("bot@stocklab.com")
+                    .fullName("Liquidity Bot")
+                    .password(passwordEncoder.encode("Bot@123"))
+                    .role(Role.USER)
+                    .balance(new BigDecimal("1000000000.00")) // 1 tỷ VND
+                    .isActive(true)
+                    .build();
+            userRepository.save(bot);
+            log.info("🤖 Đã tạo Bot User: bot_liquidity (1,000,000,000 VND)");
+        }
+        seedBotPortfolio();
+    }
+
+    private void seedBotPortfolio() {
+        User bot = userRepository.findByUsername("bot_liquidity").orElse(null);
+        if (bot == null) return;
+        if (portfolioRepository.existsByUserId(bot.getId())) return;
+
+        List<Stock> stocks = stockRepository.findAll();
+        for (Stock stock : stocks) {
+            Portfolio p = Portfolio.builder()
+                    .user(bot)
+                    .stock(stock)
+                    .quantity(10000)
+                    .lockedQuantity(0)
+                    .avgBuyPrice(stock.getReferencePrice())
+                    .build();
+            portfolioRepository.save(p);
+        }
+        log.info("🤖 Đã cấp 10,000 CP mỗi mã cho bot_liquidity");
     }
 
     private void seedPortfolios() {
