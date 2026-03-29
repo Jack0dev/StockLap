@@ -440,6 +440,11 @@ public class OrderService {
     OrderResponse toOrderResponse(Order order) {
         return OrderResponse.builder()
                 .id(order.getId())
+                .user(OrderResponse.UserDto.builder()
+                        .id(order.getUser().getId())
+                        .username(order.getUser().getUsername())
+                        .email(order.getUser().getEmail())
+                        .build())
                 .ticker(order.getStock().getTicker())
                 .companyName(order.getStock().getCompanyName())
                 .side(order.getSide().name())
@@ -455,6 +460,55 @@ public class OrderService {
 
     private String formatCurrency(BigDecimal amount) {
         return String.format("%,.0f", amount);
+    }
+
+    // ===== Lệnh Admin (ADM-5) =====
+
+    /**
+     * Lấy TẤT CẢ lệnh trên hệ thống cho Admin (pagination)
+     */
+    public ApiResponse<Page<OrderResponse>> getAllOrdersForAdmin(Pageable pageable) {
+        Page<OrderResponse> orders = orderRepository.findAll(pageable).map(this::toOrderResponse);
+        return ApiResponse.success("Lấy danh sách mọi lệnh thành công", orders);
+    }
+
+    /**
+     * Admin cưỡng chế hủy lệnh
+     */
+    @Transactional
+    public ApiResponse<OrderResponse> forceCancelOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId).orElse(null);
+        if (order == null) {
+            return ApiResponse.error("Không tìm thấy lệnh #" + orderId);
+        }
+
+        // Chỉ hủy được PENDING hoặc PARTIAL
+        if (!order.isCancellable()) {
+            return ApiResponse.error("Không thể hủy lệnh ở trạng thái: " + order.getStatus());
+        }
+
+        int remainingQty = order.getRemainingQuantity();
+
+        // Unlock tài sản theo remaining quantity
+        User orderOwner = order.getUser();
+        if (order.getSide() == OrderSide.BUY) {
+            BigDecimal refund = order.getPrice().multiply(BigDecimal.valueOf(remainingQty));
+            orderOwner.setLockedBalance(orderOwner.getLockedBalance().subtract(refund));
+            userRepository.save(orderOwner);
+        } else {
+            Portfolio portfolio = portfolioRepository
+                    .findByUserIdAndStockId(orderOwner.getId(), order.getStock().getId())
+                    .orElse(null);
+            if (portfolio != null) {
+                portfolio.setLockedQuantity(portfolio.getLockedQuantity() - remainingQty);
+                portfolioRepository.save(portfolio);
+            }
+        }
+
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+
+        return ApiResponse.success("Admin đã cưỡng chế hủy lệnh #" + orderId + " thành công!", toOrderResponse(order));
     }
 
     // ===== Migrated from TradeService =====

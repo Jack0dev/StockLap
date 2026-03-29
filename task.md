@@ -88,13 +88,14 @@
 
 ---
 
-## ❌ Module 7 — Admin (4/5)
+## ❌ Module 7 — Admin (4/6)
 
 - [x] **ADM-1** Phân quyền Admin
 - [x] **ADM-2** Quản lý Users
 - [x] **ADM-3** Quản lý Stocks
 - [x] **ADM-4** Dashboard thống kê
-- [ ] **ADM-5** Quản lý lệnh
+- [x] **ADM-5** Quản lý lệnh
+- [x] **ADM-6** Admin Navigation & Routing
 
 ---
 
