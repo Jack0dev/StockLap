@@ -32,7 +32,6 @@ public class OrderRequest {
     // Giá đặt — bắt buộc khi orderType = LIMIT, bỏ qua khi MARKET
     private BigDecimal price;
 
-    // Mã OTP xác thực đặt lệnh
-    @NotBlank(message = "Mã OTP không được để trống")
+    // Mã OTP xác thực đặt lệnh BÁN (không bắt buộc khi MUA)
     private String otpCode;
 }
