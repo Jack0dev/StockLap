@@ -32,6 +32,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByStockIdAndSideAndStatusOrderByPriceAscCreatedAtAsc(
             Long stockId, OrderSide side, OrderStatus status);
 
+    // Lệnh BUY PENDING+PARTIAL — cho Matching Engine
+    List<Order> findByStockIdAndSideAndStatusInOrderByPriceDescCreatedAtAsc(
+            Long stockId, OrderSide side, List<OrderStatus> statuses);
+
+    // Lệnh SELL PENDING+PARTIAL — cho Matching Engine
+    List<Order> findByStockIdAndSideAndStatusInOrderByPriceAscCreatedAtAsc(
+            Long stockId, OrderSide side, List<OrderStatus> statuses);
+
     // Đếm lệnh PENDING cho 1 stock (cho order book)
     List<Order> findByStockIdAndSideAndStatusIn(Long stockId, OrderSide side, List<OrderStatus> statuses);
 

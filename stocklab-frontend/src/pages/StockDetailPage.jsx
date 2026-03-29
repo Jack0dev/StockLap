@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { createChart, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
 import { stockAPI, watchlistAPI } from '../api/api';
+import { useWebSocket } from '../hooks/useWebSocket';
 import './StockDetailPage.css';
 
 const RANGES = ['1W', '1M', '3M', '6M', '1Y'];
@@ -17,6 +18,17 @@ export default function StockDetailPage() {
   const [selectedRange, setSelectedRange] = useState('3M');
   const [isWatched, setIsWatched] = useState(false);
   const [watchLoading, setWatchLoading] = useState(false);
+
+  // 🔥 Real-time price update via WebSocket
+  const handlePriceUpdate = useCallback((data) => {
+    if (!Array.isArray(data)) return;
+    const live = data.find(d => d.ticker === ticker);
+    if (live) {
+      setStock(prev => prev ? { ...prev, ...live } : prev);
+    }
+  }, [ticker]);
+
+  const { connected } = useWebSocket('/topic/prices', handlePriceUpdate);
 
   useEffect(() => {
     fetchStockDetail();
@@ -230,7 +242,7 @@ export default function StockDetailPage() {
             {stock.ticker.substring(0, 2)}
           </div>
           <div className="stock-header-info">
-            <h1>{stock.ticker}</h1>
+            <h1>{stock.ticker} {connected && <span style={{fontSize:'0.6em',color:'#00c853',marginLeft:'8px'}}>🟢 LIVE</span>}</h1>
             <div className="stock-header-meta">
               <span>{stock.companyName}</span>
               <span>•</span>

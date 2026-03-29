@@ -36,7 +36,6 @@ public class WalletController {
 
     @PostMapping("/withdraw/request-otp")
     public ApiResponse<String> requestWithdrawOtp(Authentication authentication) {
-        // Gửi thẳng OTP vào email của User (mình dùng tên username làm key tạm để tra email bên service)
         return walletService.sendWithdrawOtp(authentication.getName());
     }
 

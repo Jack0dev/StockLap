@@ -31,16 +31,17 @@ public class MatchingEngine {
     @Transactional
     public List<MatchResult> matchOrders(Stock stock) {
         List<MatchResult> results = new ArrayList<>();
+        List<OrderStatus> activeStatuses = List.of(OrderStatus.PENDING, OrderStatus.PARTIAL);
 
         // 1. Lấy lệnh BUY: giá cao nhất trước, cùng giá → FIFO
         List<Order> buyOrders = new ArrayList<>(orderRepository
-                .findByStockIdAndSideAndStatusOrderByPriceDescCreatedAtAsc(
-                        stock.getId(), OrderSide.BUY, OrderStatus.PENDING));
+                .findByStockIdAndSideAndStatusInOrderByPriceDescCreatedAtAsc(
+                        stock.getId(), OrderSide.BUY, activeStatuses));
 
         // 2. Lấy lệnh SELL: giá thấp nhất trước, cùng giá → FIFO
         List<Order> sellOrders = new ArrayList<>(orderRepository
-                .findByStockIdAndSideAndStatusOrderByPriceAscCreatedAtAsc(
-                        stock.getId(), OrderSide.SELL, OrderStatus.PENDING));
+                .findByStockIdAndSideAndStatusInOrderByPriceAscCreatedAtAsc(
+                        stock.getId(), OrderSide.SELL, activeStatuses));
 
         // 3. Hủy lệnh MARKET không có đối ứng
         cancelUnmatchableMarketOrders(buyOrders, sellOrders);
