@@ -26,28 +26,48 @@ public class TradingBotService {
 
     private final OrderService orderService;
     private final StockRepository stockRepository;
-    private final WebSocketService webSocketService; // Injected WS service
+    private final WebSocketService webSocketService;
     private final Random random = new Random();
+
+    private static final int BOT_COUNT = 20;
+    private static final String BOT_PREFIX = "bot_";
 
     @Value("${app.bot.enabled:false}")
     @Getter
     private boolean botEnabled;
 
-    @Value("${app.bot.username:bot_liquidity}")
-    @Getter
-    private String botUsername;
-
     @Value("${app.bot.interval-ms:5000}")
     @Getter
     private long intervalMs;
 
-    // Lưu 50 lệnh gần nhất để hiển thị trên Frontend
+    // Lưu 100 lệnh gần nhất
     private final Deque<BotOrderLog> recentOrders = new ConcurrentLinkedDeque<>();
-    private static final int MAX_LOG_SIZE = 50;
+    private static final int MAX_LOG_SIZE = 100;
     private final AtomicLong totalOrdersPlaced = new AtomicLong(0);
 
     /**
-     * Chạy định kỳ để tạo lệnh giả lập (Thanh khoản)
+     * Lấy tên bot ngẫu nhiên (bot_01 ~ bot_20)
+     */
+    private String randomBotName() {
+        return String.format("%s%02d", BOT_PREFIX, random.nextInt(BOT_COUNT) + 1);
+    }
+
+    /**
+     * Lấy 2 bot khác nhau để tạo cặp BUY-SELL
+     */
+    private String[] randomBotPair() {
+        int a = random.nextInt(BOT_COUNT) + 1;
+        int b;
+        do { b = random.nextInt(BOT_COUNT) + 1; } while (b == a);
+        return new String[]{
+            String.format("%s%02d", BOT_PREFIX, a),
+            String.format("%s%02d", BOT_PREFIX, b)
+        };
+    }
+
+    /**
+     * Mỗi 5 giây: 20 bot đặt lệnh trade với nhau
+     * Tạo cặp BUY-SELL cùng giá gần nhau để đảm bảo khớp lệnh
      */
     @Scheduled(fixedDelayString = "${app.bot.interval-ms:5000}")
     public void runBotTask() {
@@ -57,52 +77,77 @@ public class TradingBotService {
             List<Stock> stocks = stockRepository.findAll();
             if (stocks.isEmpty()) return;
 
-            // 1. Chọn ngẫu nhiên cổ phiếu
-            Stock stock = stocks.get(random.nextInt(stocks.size()));
+            // Mỗi cycle: tạo 5 cặp giao dịch (10 lệnh) trên các CP khác nhau
+            int pairsPerCycle = 5;
+            for (int n = 0; n < pairsPerCycle; n++) {
+                Stock stock = stocks.get(random.nextInt(stocks.size()));
+                BigDecimal currentPrice = stock.getCurrentPrice();
 
-            // 2. Chọn BUY hoặc SELL
-            OrderSide side = random.nextBoolean() ? OrderSide.BUY : OrderSide.SELL;
+                // Tạo cặp bot: 1 con BUY, 1 con SELL
+                String[] pair = randomBotPair();
+                String buyer = pair[0];
+                String seller = pair[1];
 
-            // 3. Số lượng 10–500, bội số 10
-            int quantity = (random.nextInt(50) + 1) * 10;
+                // Số lượng 10–200 CP
+                int quantity = (random.nextInt(20) + 1) * 10;
 
-            // 4. Giá ngẫu nhiên +/- 1% giá hiện tại
-            BigDecimal currentPrice = stock.getCurrentPrice();
-            double variation = (random.nextDouble() - 0.5) * 0.02;
-            BigDecimal price = currentPrice.multiply(BigDecimal.valueOf(1 + variation))
-                    .setScale(0, RoundingMode.HALF_UP);
+                // Giá giao động ±1.5% quanh giá hiện tại
+                double buyVariation = (random.nextDouble() * 0.015) + 0.001;  // +0.1% ~ +1.5%
+                double sellVariation = (random.nextDouble() * 0.015) + 0.001; // -0.1% ~ -1.5%
 
-            // 5. Đặt lệnh
-            OrderRequest request = new OrderRequest();
-            request.setTicker(stock.getTicker());
-            request.setSide(side.name());
-            request.setOrderType(OrderType.LIMIT.name());
-            request.setQuantity(quantity);
-            request.setPrice(price);
+                BigDecimal buyPrice = currentPrice.multiply(BigDecimal.valueOf(1 + buyVariation))
+                        .setScale(0, RoundingMode.HALF_UP);
+                BigDecimal sellPrice = currentPrice.multiply(BigDecimal.valueOf(1 - sellVariation))
+                        .setScale(0, RoundingMode.HALF_UP);
 
-            orderService.placeOrder(botUsername, request);
-            totalOrdersPlaced.incrementAndGet();
+                // Đảm bảo buyPrice >= sellPrice để khớp được
+                if (buyPrice.compareTo(sellPrice) < 0) {
+                    BigDecimal temp = buyPrice;
+                    buyPrice = sellPrice;
+                    sellPrice = temp;
+                }
 
-            // 6. Lưu log bộ nhớ
-            BotOrderLog entry = new BotOrderLog(
-                    stock.getTicker(), side.name(), quantity,
-                    price, LocalDateTime.now(), "SUCCESS"
-            );
-            recentOrders.addFirst(entry);
-            while (recentOrders.size() > MAX_LOG_SIZE) {
-                recentOrders.removeLast();
-            }
+                // === Đặt lệnh BUY ===
+                placeBotOrder(buyer, stock, OrderSide.BUY, quantity, buyPrice);
 
-            log.info("🤖 Bot [{}] {} {} CP {} @ {}",
-                    botUsername, side, quantity, stock.getTicker(), price);
-
-            // 7. 🔥 Broadcast qua WebSocket để frontend nhận liền
-            if (webSocketService != null) {
-                webSocketService.broadcastBotOrder(stock.getTicker(), side.name(), quantity, price);
+                // === Đặt lệnh SELL ===
+                placeBotOrder(seller, stock, OrderSide.SELL, quantity, sellPrice);
             }
 
         } catch (Exception e) {
             log.error("❌ Bot error: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Đặt 1 lệnh cho bot
+     */
+    private void placeBotOrder(String botName, Stock stock, OrderSide side, int quantity, BigDecimal price) {
+        OrderRequest request = new OrderRequest();
+        request.setTicker(stock.getTicker());
+        request.setSide(side.name());
+        request.setOrderType(OrderType.LIMIT.name());
+        request.setQuantity(quantity);
+        request.setPrice(price);
+
+        orderService.placeOrder(botName, request);
+        totalOrdersPlaced.incrementAndGet();
+
+        // Log
+        BotOrderLog entry = new BotOrderLog(
+                stock.getTicker(), side.name(), quantity,
+                price, LocalDateTime.now(), botName
+        );
+        recentOrders.addFirst(entry);
+        while (recentOrders.size() > MAX_LOG_SIZE) {
+            recentOrders.removeLast();
+        }
+
+        log.info("🤖 {} {} {} CP {} @ {}", botName, side, quantity, stock.getTicker(), price);
+
+        // Broadcast WebSocket
+        if (webSocketService != null) {
+            webSocketService.broadcastBotOrder(stock.getTicker(), side.name(), quantity, price);
         }
     }
 
@@ -114,6 +159,10 @@ public class TradingBotService {
         return totalOrdersPlaced.get();
     }
 
+    public String getBotUsername() {
+        return "bot_01"; // backward compat for API
+    }
+
     // DTO cho log activity
     public record BotOrderLog(
             String ticker,
@@ -121,6 +170,6 @@ public class TradingBotService {
             int quantity,
             BigDecimal price,
             LocalDateTime timestamp,
-            String status
+            String botName
     ) {}
 }

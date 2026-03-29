@@ -131,6 +131,8 @@ export const walletAPI = {
   withdraw: (data) => api.post('/wallet/withdraw', data),
   requestWithdrawOtp: () => api.post('/wallet/withdraw/request-otp'),
   getHistory: (page = 0, size = 20) => api.get('/wallet/history', { params: { page, size } }),
+};
+
 // ===== Bot APIs (Module 6) =====
 export const botAPI = {
   getStatus: () => api.get('/bot/status'),

@@ -58,8 +58,8 @@ public class OrderService {
                     .error("Kiểu lệnh không hợp lệ: " + request.getOrderType() + ". Chỉ chấp nhận MARKET hoặc LIMIT");
         }
 
-        // 4. XÁC THỰC OTP CHO LỆNH BÁN (gửi qua email)
-        if (side == OrderSide.SELL) {
+        // 4. XÁC THỰC OTP CHO LỆNH BÁN (bỏ qua cho bot)
+        if (side == OrderSide.SELL && !username.startsWith("bot_")) {
             if (request.getOtpCode() == null || request.getOtpCode().isBlank()) {
                 return ApiResponse.error("Lệnh BÁN yêu cầu mã OTP xác thực!");
             }

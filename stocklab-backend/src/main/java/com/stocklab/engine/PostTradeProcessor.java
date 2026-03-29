@@ -2,6 +2,7 @@ package com.stocklab.engine;
 
 import com.stocklab.model.*;
 import com.stocklab.repository.*;
+import com.stocklab.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -26,21 +27,23 @@ public class PostTradeProcessor {
     private final UserRepository userRepository;
     private final PortfolioRepository portfolioRepository;
     private final StockRepository stockRepository;
+    private final OrderRepository orderRepository;
 
     /**
      * Xử lý 1 MatchResult sau khi khớp lệnh
      */
     @Transactional
     public void process(MatchResult matchResult) {
-        Order buyOrder = matchResult.getBuyOrder();
-        Order sellOrder = matchResult.getSellOrder();
+        // Reload entities từ DB để tránh detached entity
+        Order buyOrder = orderRepository.findById(matchResult.getBuyOrder().getId()).orElseThrow();
+        Order sellOrder = orderRepository.findById(matchResult.getSellOrder().getId()).orElseThrow();
         BigDecimal matchPrice = matchResult.getMatchPrice();
         int matchQty = matchResult.getMatchQuantity();
         BigDecimal totalAmount = matchPrice.multiply(BigDecimal.valueOf(matchQty));
 
-        User buyer = buyOrder.getUser();
-        User seller = sellOrder.getUser();
-        Stock stock = buyOrder.getStock();
+        User buyer = userRepository.findById(buyOrder.getUser().getId()).orElseThrow();
+        User seller = userRepository.findById(sellOrder.getUser().getId()).orElseThrow();
+        Stock stock = stockRepository.findById(buyOrder.getStock().getId()).orElseThrow();
 
         // 1. Tạo Transaction cho cả 2 bên
         createTransactions(buyer, seller, stock, matchQty, matchPrice, totalAmount);
@@ -178,6 +181,18 @@ public class PostTradeProcessor {
         }
         if (matchPrice.compareTo(stock.getLowPrice()) < 0) {
             stock.setLowPrice(matchPrice);
+        }
+
+        // Cập nhật change & changePercent theo referencePrice
+        BigDecimal refPrice = stock.getReferencePrice();
+        if (refPrice != null && refPrice.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal change = matchPrice.subtract(refPrice);
+            stock.setChange(change);
+            stock.setChangePercent(
+                change.divide(refPrice, 4, RoundingMode.HALF_UP)
+                      .multiply(BigDecimal.valueOf(100))
+                      .doubleValue()
+            );
         }
 
         stock.setVolume(stock.getVolume() + matchQty);

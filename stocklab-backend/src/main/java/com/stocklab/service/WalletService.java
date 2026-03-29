@@ -88,24 +88,28 @@ public class WalletService {
             return ApiResponse.error("Số dư khả dụng không đủ để rút số tiền này");
         }
 
+        // Sinh mã giao dịch duy nhất dạng SLxxxxxx
+        String txCode = "SL" + java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+
         // Tạo giao dịch rút
         WalletTransaction transaction = WalletTransaction.builder()
                 .user(user)
                 .type(WalletTransactionType.WITHDRAW)
                 .amount(request.getAmount())
-                .status(WalletTransactionStatus.PENDING) // Chuyển sang duyệt thủ công bởi Admin
+                .status(WalletTransactionStatus.COMPLETED) // OTP đã xác thực → duyệt luôn
                 .bankAccount(request.getBankAccount())
                 .bankName(request.getBankName())
-                .note("Rút tiền về " + request.getBankName())
+                .transactionCode(txCode)
+                .note("Rút tiền về " + request.getBankName() + " - Mã GD: " + txCode)
                 .build();
 
-        // Trừ tiền user ĐỂ GIAM TIỀN LẠI (Nếu Admin Reject sẽ cộng hoàn sau)
+        // Trừ tiền user
         user.setBalance(user.getBalance().subtract(request.getAmount()));
         
         userRepository.save(user);
         WalletTransaction savedTx = walletTransactionRepository.save(transaction);
 
-        return ApiResponse.success("Tạo lệnh rút thành công! Vui lòng chờ hệ thống chuyển khoản.", toResponse(savedTx));
+        return ApiResponse.success("Rút tiền thành công! Mã giao dịch: " + txCode, toResponse(savedTx));
     }
 
     @Transactional
@@ -168,7 +172,7 @@ public class WalletService {
     }
 
     WalletTransactionResponse toResponse(WalletTransaction tx) {
-        return WalletTransactionResponse.builder()
+        WalletTransactionResponse response = WalletTransactionResponse.builder()
                 .id(tx.getId())
                 .type(tx.getType().name())
                 .amount(tx.getAmount())
@@ -179,5 +183,14 @@ public class WalletService {
                 .note(tx.getNote())
                 .createdAt(tx.getCreatedAt())
                 .build();
+                
+        // Trả về thông tin tài khoản nhận của Admin (dùng để render QR)
+        if (tx.getType() == WalletTransactionType.DEPOSIT) {
+            response.setSystemBankAccount("8858253943");
+            response.setSystemAccountName("STOCK LAB CK");
+            response.setSystemBankName("MB BANK");
+        }
+        
+        return response;
     }
 }

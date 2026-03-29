@@ -96,19 +96,59 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void seedBotUser() {
+        int BOT_COUNT = 20;
+        List<Stock> allStocks = stockRepository.findAll();
+
+        for (int i = 1; i <= BOT_COUNT; i++) {
+            String botName = String.format("bot_%02d", i);
+            if (!userRepository.existsByUsername(botName)) {
+                User bot = User.builder()
+                        .username(botName)
+                        .email(botName + "@stocklab.bot")
+                        .fullName("Trading Bot #" + i)
+                        .password(passwordEncoder.encode("Bot@123"))
+                        .role(Role.USER)
+                        .balance(new BigDecimal("500000000.00")) // 500M mỗi bot
+                        .isActive(true)
+                        .build();
+                userRepository.save(bot);
+                log.info("🤖 Đã tạo {}", botName);
+            }
+
+            // Đảm bảo mỗi bot có portfolio cho tất cả CP
+            User botUser = userRepository.findByUsername(botName).orElse(null);
+            if (botUser != null) {
+                for (Stock stock : allStocks) {
+                    boolean has = portfolioRepository.findByUserIdAndStockId(botUser.getId(), stock.getId()).isPresent();
+                    if (!has) {
+                        Portfolio portfolio = Portfolio.builder()
+                                .user(botUser)
+                                .stock(stock)
+                                .quantity(5000) // 5,000 CP mỗi mã
+                                .lockedQuantity(0)
+                                .avgBuyPrice(stock.getCurrentPrice())
+                                .build();
+                        portfolioRepository.save(portfolio);
+                    }
+                }
+            }
+        }
+
+        // Giữ bot_liquidity cũ nếu có (backward compat)
         if (!userRepository.existsByUsername("bot_liquidity")) {
             User bot = User.builder()
                     .username("bot_liquidity")
                     .email("bot@stocklab.com")
                     .fullName("Liquidity Bot")
                     .password(passwordEncoder.encode("Bot@123"))
-                    .role(Role.USER) // Role USER để có thể đặt lệnh bình thường
-                    .balance(new BigDecimal("1000000000.00")) // 1 Tỷ VND để tạo thanh khoản
+                    .role(Role.USER)
+                    .balance(new BigDecimal("1000000000.00"))
                     .isActive(true)
                     .build();
             userRepository.save(bot);
-            log.info("🤖 Đã tạo Bot User: bot_liquidity (1,000,000,000 VND)");
         }
+
+        log.info("🤖 {} Trading Bots đã sẵn sàng với portfolio cho {} mã CP", BOT_COUNT, allStocks.size());
     }
 
     private void seedStocks() {
@@ -304,15 +344,9 @@ public class DataSeeder implements CommandLineRunner {
     // ===== [BOT-1] Trading Bot User =====
 
     private void seedPortfolios() {
-        if (portfolioRepository.count() > 0) {
-            log.info("💼 Database đã có dữ liệu portfolio, bỏ qua seeding.");
-            return;
-        }
-
-        log.info("🌱 Bắt đầu seed dữ liệu portfolio...");
-
         List<User> users = userRepository.findAll().stream()
-                .filter(u -> u.getRole() == Role.USER || u.getRole() == Role.MANAGER)
+                .filter(u -> (u.getRole() == Role.USER || u.getRole() == Role.MANAGER)
+                        && !u.getUsername().startsWith("bot_"))
                 .toList();
         List<Stock> stocks = stockRepository.findAll();
 
@@ -321,18 +355,32 @@ public class DataSeeder implements CommandLineRunner {
             return;
         }
 
+        // Kiểm tra xem user thường đã có portfolio chưa
+        boolean alreadySeeded = users.stream()
+                .anyMatch(u -> !portfolioRepository.findByUserId(u.getId()).isEmpty());
+        if (alreadySeeded) {
+            log.info("💼 Regular users đã có portfolio, bỏ qua seeding.");
+            return;
+        }
+
+        log.info("🌱 Bắt đầu seed dữ liệu portfolio cho {} users...", users.size());
+
+
         Random random = new Random(99);
         int count = 0;
 
-        // Mỗi user sở hữu 5-7 CP ngẫu nhiên
+        // Mỗi user sở hữu ít nhất 10 loại CP (10-14 mã)
         for (User user : users) {
-            int numStocks = 5 + random.nextInt(3); // 5-7 stocks
+            // Bỏ qua bot users (đã seed portfolio riêng)
+            if (user.getUsername().startsWith("bot_")) continue;
+
+            int numStocks = 10 + random.nextInt(5); // 10-14 stocks
             List<Stock> shuffled = new ArrayList<>(stocks);
             java.util.Collections.shuffle(shuffled, random);
 
             for (int i = 0; i < Math.min(numStocks, shuffled.size()); i++) {
                 Stock stock = shuffled.get(i);
-                int qty = (random.nextInt(10) + 1) * 10; // 10-100 CP (bội 10)
+                int qty = (random.nextInt(30) + 5) * 10; // 50-300 CP (bội 10)
                 double avgPrice = stock.getCurrentPrice().doubleValue() * (0.85 + random.nextDouble() * 0.2); // 85%-105% giá hiện tại
 
                 Portfolio portfolio = Portfolio.builder()

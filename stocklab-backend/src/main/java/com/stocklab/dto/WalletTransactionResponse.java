@@ -17,4 +17,9 @@ public class WalletTransactionResponse {
     private String transactionCode;
     private String note;
     private Date createdAt;
+    
+    // Admin receiving bank details (for deposit)
+    private String systemBankAccount;
+    private String systemAccountName;
+    private String systemBankName;
 }

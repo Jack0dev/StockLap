@@ -7,6 +7,7 @@ import com.stocklab.model.OrderStatus;
 import com.stocklab.model.Stock;
 import com.stocklab.repository.OrderRepository;
 import com.stocklab.repository.StockRepository;
+import com.stocklab.service.WebSocketService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -27,6 +28,7 @@ public class MatchingScheduler {
     private final PostTradeProcessor postTradeProcessor;
     private final OrderRepository orderRepository;
     private final StockRepository stockRepository;
+    private final WebSocketService webSocketService;
 
     /**
      * Chạy mỗi 1 giây — khớp lệnh cho tất cả CP có lệnh active
@@ -54,6 +56,14 @@ public class MatchingScheduler {
                 // Xử lý hậu khớp cho từng match
                 for (MatchResult result : results) {
                     postTradeProcessor.process(result);
+
+                    // 🔥 Broadcast trade event qua WebSocket
+                    webSocketService.broadcastTrade(
+                        stock.getTicker(),
+                        "MATCHED",
+                        result.getMatchQuantity(),
+                        result.getMatchPrice()
+                    );
                 }
 
                 if (!results.isEmpty()) {

@@ -83,6 +83,26 @@ export default function OrderHistoryPage() {
     }
   };
 
+  const handleViewDetail = async (orderId) => {
+    setDetailLoading(true);
+    try {
+      const res = await orderAPI.getOrderDetail(orderId);
+      if (res.data.success) {
+        setDetailOrder(res.data.data);
+      } else {
+        // Fallback: dùng data có sẵn từ list
+        const found = orders.find(o => o.id === orderId);
+        if (found) setDetailOrder(found);
+      }
+    } catch (err) {
+      // Fallback: dùng data có sẵn từ list
+      const found = orders.find(o => o.id === orderId);
+      if (found) setDetailOrder(found);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
   const formatPrice = (p) => {
     if (!p) return '0';
     return Number(p).toLocaleString('vi-VN');

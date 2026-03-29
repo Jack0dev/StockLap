@@ -2,6 +2,7 @@ package com.stocklab.service;
 
 import com.stocklab.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OtpService {
 
     private static final String OTP_PREFIX = "OTP:";
@@ -34,6 +36,9 @@ public class OtpService {
     public ApiResponse<String> sendOtp(String email) {
         String otp = generateNumericOtp(6);
         String key = OTP_PREFIX + email;
+        
+        // 🔑 In OTP ra console để dev dễ lấy khi test
+        log.info("🔑 OTP cho [{}]: {}", email, otp);
         
         try {
             // Save to Redis with 5 minutes TTL
