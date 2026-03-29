@@ -22,7 +22,7 @@ function AppLayout() {
 }
 
 function App() {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, user, loading } = useAuth()
 
   if (loading) {
     return (
@@ -36,7 +36,7 @@ function App() {
     <Routes>
       {/* Public routes */}
       {publicRoutes.map(({ path, page: Page }) => (
-        <Route key={path} path={path} element={isAuthenticated ? <Navigate to="/stocks" /> : <Page />} />
+        <Route key={path} path={path} element={isAuthenticated ? <Navigate to={user?.role === 'ADMIN' ? '/admin/stocks' : '/stocks'} /> : <Page />} />
       ))}
 
       {/* Protected routes */}
@@ -60,7 +60,7 @@ function App() {
       </Route>
 
       {/* Default redirect */}
-      <Route path="*" element={<Navigate to={isAuthenticated ? "/stocks" : "/login"} />} />
+      <Route path="*" element={<Navigate to={isAuthenticated ? (user?.role === 'ADMIN' ? '/admin/stocks' : '/stocks') : '/login'} />} />
     </Routes>
   )
 }
