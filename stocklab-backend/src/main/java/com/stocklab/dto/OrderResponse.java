@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 public class OrderResponse {
 
     private Long id;
+    private UserDto user;
     private String ticker;
     private String companyName;
     private String side;        // BUY / SELL
@@ -25,4 +26,14 @@ public class OrderResponse {
     private String status;      // PENDING / PARTIAL / FILLED / CANCELLED / REJECTED
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class UserDto {
+        private Long id;
+        private String username;
+        private String email;
+    }
 }

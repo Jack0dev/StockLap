@@ -6,6 +6,10 @@ import com.stocklab.dto.ChangeRoleRequest;
 import com.stocklab.dto.UserProfileResponse;
 import com.stocklab.service.AdminDashboardService;
 import com.stocklab.service.UserService;
+import com.stocklab.service.OrderService;
+import com.stocklab.dto.OrderResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,6 +25,21 @@ public class AdminController {
 
     private final UserService userService;
     private final AdminDashboardService adminDashboardService;
+    private final OrderService orderService;
+
+    @GetMapping("/orders")
+    public ResponseEntity<ApiResponse<Page<OrderResponse>>> getAllOrders(Pageable pageable) {
+        return ResponseEntity.ok(orderService.getAllOrdersForAdmin(pageable));
+    }
+
+    @PutMapping("/orders/{id}/cancel")
+    public ResponseEntity<ApiResponse<OrderResponse>> forceCancelOrder(@PathVariable Long id) {
+        ApiResponse<OrderResponse> response = orderService.forceCancelOrder(id);
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.badRequest().body(response);
+    }
 
     @GetMapping("/dashboard")
     public ResponseEntity<ApiResponse<AdminDashboardResponse>> getAdminDashboard() {
