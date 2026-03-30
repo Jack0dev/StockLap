@@ -21,5 +21,6 @@ public class UserProfileResponse {
     private BigDecimal lockedBalance;
     private BigDecimal availableBalance;
     private boolean isActive;
+    private String avatarUrl;
     private LocalDateTime createdAt;
 }

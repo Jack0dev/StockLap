@@ -311,13 +311,14 @@ public class UserService {
                 .lockedBalance(user.getLockedBalance())
                 .availableBalance(user.getAvailableBalance())
                 .isActive(user.isActive())
+                .avatarUrl(user.getAvatarUrl())
                 .createdAt(user.getCreatedAt())
                 .build();
 
         return ApiResponse.success("Lấy thông tin thành công", profile);
     }
 
-    public ApiResponse<String> updateProfile(String username, RegisterRequest request) {
+    public ApiResponse<String> updateProfile(String username, UpdateProfileRequest request) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
@@ -336,6 +337,24 @@ public class UserService {
 
         userRepository.save(user);
         return ApiResponse.success("Cập nhật thông tin thành công!");
+    }
+
+    public ApiResponse<String> uploadAvatar(String username, String avatarBase64) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+
+        if (avatarBase64 == null || avatarBase64.isBlank()) {
+            return ApiResponse.error("Dữ liệu ảnh không hợp lệ!");
+        }
+
+        // Giới hạn kích thước ~2MB (base64 tăng ~33% so với file gốc)
+        if (avatarBase64.length() > 2_800_000) {
+            return ApiResponse.error("Ảnh quá lớn! Vui lòng chọn ảnh dưới 2MB.");
+        }
+
+        user.setAvatarUrl(avatarBase64);
+        userRepository.save(user);
+        return ApiResponse.success("Cập nhật ảnh đại diện thành công!");
     }
 
     // Cache tạm thời thông tin đổi mật khẩu (email -> newPassword) trong Redis
@@ -384,6 +403,7 @@ public class UserService {
                         .lockedBalance(user.getLockedBalance())
                         .availableBalance(user.getAvailableBalance())
                         .isActive(user.isActive())
+                        .avatarUrl(user.getAvatarUrl())
                         .createdAt(user.getCreatedAt())
                         .build())
                 .toList();

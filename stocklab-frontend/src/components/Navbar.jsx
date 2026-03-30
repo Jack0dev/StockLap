@@ -128,9 +128,13 @@ export default function Navbar() {
         {/* User Menu */}
         <div className="navbar-user" ref={dropdownRef}>
           <button className="user-trigger" onClick={() => setDropdownOpen(!dropdownOpen)}>
-            <div className="user-avatar">
-              {(user?.fullName || user?.username || 'U').charAt(0).toUpperCase()}
-            </div>
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="" className="user-avatar user-avatar-img" />
+            ) : (
+              <div className="user-avatar">
+                {(user?.fullName || user?.username || 'U').charAt(0).toUpperCase()}
+              </div>
+            )}
             <span className="user-name">{user?.fullName || user?.username}</span>
             <svg className={`chevron ${dropdownOpen ? 'open' : ''}`} width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
               <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />

@@ -64,6 +64,9 @@ public class User {
     @Builder.Default
     private BigDecimal lockedBalance = BigDecimal.ZERO; // Tiền bị lock cho lệnh BUY đang PENDING
 
+    @Column(columnDefinition = "LONGTEXT")
+    private String avatarUrl;
+
     @Column(name = "is2fa_enabled", nullable = false)
     @Builder.Default
     private boolean is2faEnabled = false;

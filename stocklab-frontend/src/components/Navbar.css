@@ -207,6 +207,12 @@
   color: #fff;
 }
 
+.user-avatar-img {
+  object-fit: cover;
+  border: 2px solid var(--accent);
+  background: var(--bg-secondary);
+}
+
 .user-name {
   font-size: 0.8125rem;
   font-weight: 500;

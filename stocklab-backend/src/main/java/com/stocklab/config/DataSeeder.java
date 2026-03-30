@@ -50,6 +50,7 @@ public class DataSeeder implements CommandLineRunner {
         seedBotUser(); // [BOT-1] Module 6
         seedPortfolios();
         seedWatchlists();
+        resetCorruptedPrices(); // Fix giá bị crash do bot
     }
 
     private void seedUsers() {
@@ -141,11 +142,12 @@ public class DataSeeder implements CommandLineRunner {
                     .email("bot@stocklab.com")
                     .fullName("Liquidity Bot")
                     .password(passwordEncoder.encode("Bot@123"))
-                    .role(Role.USER)
-                    .balance(new BigDecimal("1000000000.00"))
+                    .role(Role.USER) // Role USER để có thể đặt lệnh bình thường
+                    .balance(new BigDecimal("1000000000.00")) // 1 Tỷ VND để tạo thanh khoản
                     .isActive(true)
                     .build();
             userRepository.save(bot);
+            log.info("🤖 Đã tạo Bot User: bot_liquidity (1,000,000,000 VND)");
         }
 
         log.info("🤖 {} Trading Bots đã sẵn sàng với portfolio cho {} mã CP", BOT_COUNT, allStocks.size());
@@ -338,6 +340,61 @@ public class DataSeeder implements CommandLineRunner {
         if (changed) {
             stockRepository.saveAll(stocks);
             log.info("🔓 Đã tự động mở khoá (isActive = true) cho các mã cổ phiếu cũ do cập nhật cấu trúc Database.");
+        }
+    }
+
+    /**
+     * Phát hiện và sửa giá cổ phiếu bị crash do bot (currentPrice < 50% referencePrice).
+     * Reset lại currentPrice, openPrice, highPrice, lowPrice về quanh referencePrice.
+     */
+    private void resetCorruptedPrices() {
+        List<Stock> stocks = stockRepository.findAll();
+        Random random = new Random();
+        int fixedCount = 0;
+
+        for (Stock stock : stocks) {
+            BigDecimal refPrice = stock.getReferencePrice();
+            if (refPrice == null || refPrice.compareTo(BigDecimal.ZERO) <= 0) continue;
+
+            BigDecimal currentPrice = stock.getCurrentPrice();
+            // Phát hiện giá crash: currentPrice < 50% hoặc > 200% so với referencePrice
+            BigDecimal threshold = refPrice.multiply(BigDecimal.valueOf(0.5));
+            BigDecimal upperThreshold = refPrice.multiply(BigDecimal.valueOf(2.0));
+
+            if (currentPrice.compareTo(threshold) < 0 || currentPrice.compareTo(upperThreshold) > 0) {
+                // Reset giá về quanh referencePrice (±2%)
+                double variation = (random.nextDouble() - 0.5) * 0.04;
+                BigDecimal newPrice = refPrice.multiply(BigDecimal.valueOf(1 + variation))
+                        .setScale(2, RoundingMode.HALF_UP);
+                double openVar = (random.nextDouble() - 0.5) * 0.02;
+                BigDecimal newOpen = refPrice.multiply(BigDecimal.valueOf(1 + openVar))
+                        .setScale(2, RoundingMode.HALF_UP);
+                BigDecimal newHigh = newPrice.max(newOpen).multiply(BigDecimal.valueOf(1.01))
+                        .setScale(2, RoundingMode.HALF_UP);
+                BigDecimal newLow = newPrice.min(newOpen).multiply(BigDecimal.valueOf(0.99))
+                        .setScale(2, RoundingMode.HALF_UP);
+
+                stock.setCurrentPrice(newPrice);
+                stock.setOpenPrice(newOpen);
+                stock.setHighPrice(newHigh);
+                stock.setLowPrice(newLow);
+                stock.setChange(newPrice.subtract(refPrice));
+                stock.setChangePercent(
+                    newPrice.subtract(refPrice)
+                            .divide(refPrice, 4, RoundingMode.HALF_UP)
+                            .multiply(BigDecimal.valueOf(100))
+                            .doubleValue()
+                );
+                stock.setVolume((long) (random.nextDouble() * 3_000_000 + 500_000));
+                stockRepository.save(stock);
+                fixedCount++;
+                log.warn("🔧 Reset giá {} từ {} về {} (ref={})",
+                        stock.getTicker(), currentPrice, newPrice, refPrice);
+            }
+        }
+
+        if (fixedCount > 0) {
+            log.info("🔧 Đã reset giá cho {} mã cổ phiếu bị crash do bot.", fixedCount);
         }
     }
 

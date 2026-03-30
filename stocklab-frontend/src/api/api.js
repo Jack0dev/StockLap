@@ -53,6 +53,7 @@ export const userAPI = {
   getProfile: () => api.get('/users/profile'),
   updateProfile: (data) => api.put('/users/profile', data),
   changePassword: (data) => api.put('/users/change-password', data),
+  uploadAvatar: (avatarBase64) => api.post('/users/avatar', { avatarBase64 }),
 };
 
 // ===== Stock APIs =====

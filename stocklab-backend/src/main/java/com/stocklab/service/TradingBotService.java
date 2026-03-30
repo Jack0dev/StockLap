@@ -68,6 +68,12 @@ public class TradingBotService {
     /**
      * Mỗi 5 giây: 20 bot đặt lệnh trade với nhau
      * Tạo cặp BUY-SELL cùng giá gần nhau để đảm bảo khớp lệnh
+     *
+     * FIX: Sử dụng referencePrice làm neo thay vì currentPrice
+     * để tránh hiện tượng cascading price crash (giá trôi 1 chiều).
+     * Giá mục tiêu dao động ĐỐI XỨNG ±2% quanh referencePrice,
+     * spread BUY/SELL rất nhỏ (0.1%) để giá khớp ≈ targetPrice.
+     * Circuit breaker: giới hạn ±7% so với referencePrice.
      */
     @Scheduled(fixedDelayString = "${app.bot.interval-ms:5000}")
     public void runBotTask() {
@@ -81,7 +87,12 @@ public class TradingBotService {
             int pairsPerCycle = 5;
             for (int n = 0; n < pairsPerCycle; n++) {
                 Stock stock = stocks.get(random.nextInt(stocks.size()));
-                BigDecimal currentPrice = stock.getCurrentPrice();
+
+                // Sử dụng referencePrice làm neo (tránh cascading crash)
+                BigDecimal anchorPrice = stock.getReferencePrice();
+                if (anchorPrice == null || anchorPrice.compareTo(BigDecimal.ZERO) <= 0) {
+                    anchorPrice = stock.getCurrentPrice();
+                }
 
                 // Tạo cặp bot: 1 con BUY, 1 con SELL
                 String[] pair = randomBotPair();
@@ -91,13 +102,15 @@ public class TradingBotService {
                 // Số lượng 10–200 CP
                 int quantity = (random.nextInt(20) + 1) * 10;
 
-                // Giá giao động ±1.5% quanh giá hiện tại
-                double buyVariation = (random.nextDouble() * 0.015) + 0.001;  // +0.1% ~ +1.5%
-                double sellVariation = (random.nextDouble() * 0.015) + 0.001; // -0.1% ~ -1.5%
-
-                BigDecimal buyPrice = currentPrice.multiply(BigDecimal.valueOf(1 + buyVariation))
+                // Giá mục tiêu dao động ĐỐI XỨNG ±2% quanh anchorPrice
+                double variation = (random.nextDouble() - 0.5) * 0.04; // -2% ~ +2%
+                BigDecimal targetPrice = anchorPrice.multiply(BigDecimal.valueOf(1 + variation))
                         .setScale(0, RoundingMode.HALF_UP);
-                BigDecimal sellPrice = currentPrice.multiply(BigDecimal.valueOf(1 - sellVariation))
+
+                // BUY cao hơn target 0.1%, SELL thấp hơn target 0.1% (spread nhỏ)
+                BigDecimal buyPrice = targetPrice.multiply(BigDecimal.valueOf(1.001))
+                        .setScale(0, RoundingMode.HALF_UP);
+                BigDecimal sellPrice = targetPrice.multiply(BigDecimal.valueOf(0.999))
                         .setScale(0, RoundingMode.HALF_UP);
 
                 // Đảm bảo buyPrice >= sellPrice để khớp được
@@ -107,13 +120,20 @@ public class TradingBotService {
                     sellPrice = temp;
                 }
 
+                // Circuit breaker: giới hạn giá trong khoảng ±7% so với referencePrice
+                BigDecimal maxPrice = anchorPrice.multiply(BigDecimal.valueOf(1.07))
+                        .setScale(0, RoundingMode.HALF_UP);
+                BigDecimal minPrice = anchorPrice.multiply(BigDecimal.valueOf(0.93))
+                        .setScale(0, RoundingMode.HALF_UP);
+                buyPrice = buyPrice.min(maxPrice).max(minPrice);
+                sellPrice = sellPrice.min(maxPrice).max(minPrice);
+
                 // === Đặt lệnh BUY ===
                 placeBotOrder(buyer, stock, OrderSide.BUY, quantity, buyPrice);
 
                 // === Đặt lệnh SELL ===
                 placeBotOrder(seller, stock, OrderSide.SELL, quantity, sellPrice);
             }
-
         } catch (Exception e) {
             log.error("❌ Bot error: {}", e.getMessage());
         }
