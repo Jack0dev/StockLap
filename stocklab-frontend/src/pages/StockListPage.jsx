@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { stockAPI } from '../api/api';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { usePageTour } from '../hooks/usePageTour';
 import SearchBar from '../components/SearchBar';
 import './StockListPage.css';
 
@@ -9,6 +10,7 @@ const EXCHANGES = ['Tất cả', 'HOSE', 'HNX', 'UPCOM'];
 
 export default function StockListPage() {
   const navigate = useNavigate();
+  const { restartTour } = usePageTour('stocks');
   const [stocks, setStocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
@@ -144,6 +146,7 @@ export default function StockListPage() {
               </button>
             ))}
           </div>
+          <button className="page-tour-btn" onClick={restartTour} title="Hướng dẫn trang này">?</button>
         </div>
       </div>
 

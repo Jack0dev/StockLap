@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { orderAPI } from '../api/api';
+import { usePageTour } from '../hooks/usePageTour';
 import './OrderHistoryPage.css';
 
 export default function OrderHistoryPage() {
+  const { restartTour } = usePageTour('orders');
   const [orders, setOrders] = useState([]);
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(0);
@@ -159,7 +161,10 @@ export default function OrderHistoryPage() {
     <div className="order-history-page fade-in">
       <div className="oh-header">
         <h2>📋 Sổ lệnh</h2>
-        <span className="oh-subtitle">Quản lý và theo dõi các lệnh đặt</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span className="oh-subtitle">Quản lý và theo dõi các lệnh đặt</span>
+          <button className="page-tour-btn" onClick={restartTour} title="Hướng dẫn trang này">?</button>
+        </div>
       </div>
 
       {/* Status Filter */}

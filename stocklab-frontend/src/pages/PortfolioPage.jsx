@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { tradeAPI, userAPI } from '../api/api';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
+import { usePageTour } from '../hooks/usePageTour';
 import './PortfolioPage.css';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function PortfolioPage() {
   const navigate = useNavigate();
+  const { restartTour } = usePageTour('portfolio');
   const [portfolio, setPortfolio] = useState([]);
   const [summary, setSummary] = useState(null);
   const [balance, setBalance] = useState(0);
@@ -103,6 +105,7 @@ export default function PortfolioPage() {
     <div className="portfolio-page fade-in">
       <div className="pf-header">
         <h2>💼 Danh mục đầu tư</h2>
+        <button className="page-tour-btn" onClick={restartTour} title="Hướng dẫn trang này">?</button>
       </div>
 
       {/* Summary Cards */}

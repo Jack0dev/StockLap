@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { orderAPI, stockAPI } from '../api/api';
+import { usePageTour } from '../hooks/usePageTour';
 import './OrderBookPage.css';
 
 export default function OrderBookPage() {
+  const { restartTour } = usePageTour('orderBook');
   const [ticker, setTicker] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -89,7 +91,10 @@ export default function OrderBookPage() {
     <div className="order-book-page fade-in">
       <div className="ob-header">
         <h2>📊 Sổ lệnh</h2>
-        <span className="ob-subtitle">Sổ lệnh theo mã cổ phiếu</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span className="ob-subtitle">Sổ lệnh theo mã cổ phiếu</span>
+          <button className="page-tour-btn" onClick={restartTour} title="Hướng dẫn trang này">?</button>
+        </div>
       </div>
 
       {/* Search */}

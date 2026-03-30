@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { stockAPI, userAPI, otpAPI, conditionalOrderAPI } from '../api/api';
+import { usePageTour } from '../hooks/usePageTour';
 import './ConditionalOrderPage.css';
 
 const CONDITION_TYPES = [
@@ -24,6 +25,7 @@ const FIELD_CONFIG = {
 };
 
 export default function ConditionalOrderPage() {
+  const { restartTour } = usePageTour('conditionalOrder');
   const [activeTab, setActiveTab] = useState('BUY');
   const [conditionType, setConditionType] = useState('GTD');
   const [conditionDropdownOpen, setConditionDropdownOpen] = useState(false);
@@ -234,15 +236,18 @@ export default function ConditionalOrderPage() {
     <div className="cond-order-page fade-in">
       <div className="cond-header">
         <h2>⚡ Đặt Lệnh Điều Kiện</h2>
-        <div className="balance-display">
-          <div className="balance-item">
-            <span className="balance-label">Tổng tài sản</span>
-            <span className="balance-value">{formatPrice(balance)} VND</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="balance-display">
+            <div className="balance-item">
+              <span className="balance-label">Tổng tài sản</span>
+              <span className="balance-value">{formatPrice(balance)} VND</span>
+            </div>
+            <div className="balance-item">
+              <span className="balance-label">Khả dụng</span>
+              <span className="balance-value available">{formatPrice(availableBalance)} VND</span>
+            </div>
           </div>
-          <div className="balance-item">
-            <span className="balance-label">Khả dụng</span>
-            <span className="balance-value available">{formatPrice(availableBalance)} VND</span>
-          </div>
+          <button className="page-tour-btn" onClick={restartTour} title="Hướng dẫn trang này">?</button>
         </div>
       </div>
 
