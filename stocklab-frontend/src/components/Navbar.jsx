@@ -69,6 +69,12 @@ export default function Navbar() {
       desc: 'Theo dõi hoạt động bot tạo thanh khoản',
       path: '/bot-activity',
     },
+    {
+      icon: '🪙',
+      title: 'Token SLP',
+      desc: 'Token sàn — giá theo lợi nhuận StockLab',
+      path: '/platform-token',
+    },
   ];
 
   return (

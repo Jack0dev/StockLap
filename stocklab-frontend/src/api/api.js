@@ -140,6 +140,11 @@ export const botAPI = {
   getActivity: () => api.get('/bot/activity'),
 };
 
+// ===== Platform Token APIs (SLP) =====
+export const platformTokenAPI = {
+  getInfo: () => api.get('/platform-token'),
+};
+
 // ===== Admin Stock APIs =====
 export const adminStockAPI = {
   getAllStocks: (params) => api.get('/admin/stocks', { params }),

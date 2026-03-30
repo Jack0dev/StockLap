@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/orders/book/**").permitAll()
                         .requestMatchers("/api/webhook/**").permitAll()
                         .requestMatchers("/api/bot/**").permitAll()
+                        .requestMatchers("/api/platform-token/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/trade/**").authenticated()
                         .requestMatchers("/api/watchlist/**").authenticated()
