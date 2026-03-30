@@ -11,6 +11,7 @@ import ConditionalOrderPage from '../pages/ConditionalOrderPage'
 import WalletPage from '../pages/WalletPage'
 import BotActivityPage from '../pages/BotActivityPage'
 import ReportPage from '../pages/ReportPage'
+import PlatformTokenPage from '../pages/PlatformTokenPage'
 
 const protectedRoutes = [
   { path: '/profile', element: <ProfilePage /> },
@@ -26,6 +27,7 @@ const protectedRoutes = [
   { path: '/wallet', element: <WalletPage /> },
   { path: '/bot-activity', element: <BotActivityPage /> },
   { path: '/reports', element: <ReportPage /> },
+  { path: '/platform-token', element: <PlatformTokenPage /> },
 ]
 
 export default protectedRoutes

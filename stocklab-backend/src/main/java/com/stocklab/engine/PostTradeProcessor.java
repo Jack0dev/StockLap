@@ -3,6 +3,7 @@ package com.stocklab.engine;
 import com.stocklab.model.*;
 import com.stocklab.repository.*;
 import com.stocklab.repository.OrderRepository;
+import com.stocklab.service.PlatformTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -14,9 +15,10 @@ import java.math.RoundingMode;
 /**
  * Xử lý hậu khớp lệnh:
  * 1. Tạo Transaction (BUY + SELL)
- * 2. Cập nhật Balance + LockedBalance
+ * 2. Cập nhật Balance + LockedBalance + Thu phí giao dịch
  * 3. Cập nhật Portfolio + AvgBuyPrice
  * 4. Cập nhật Stock Price
+ * 5. Ghi nhận phí cho Token SLP
  */
 @Slf4j
 @Component
@@ -28,6 +30,7 @@ public class PostTradeProcessor {
     private final PortfolioRepository portfolioRepository;
     private final StockRepository stockRepository;
     private final OrderRepository orderRepository;
+    private final PlatformTokenService platformTokenService;
 
     /**
      * Xử lý 1 MatchResult sau khi khớp lệnh
@@ -48,8 +51,10 @@ public class PostTradeProcessor {
         // 1. Tạo Transaction cho cả 2 bên
         createTransactions(buyer, seller, stock, matchQty, matchPrice, totalAmount);
 
-        // 2. Cập nhật Balance
-        updateBalances(buyer, seller, totalAmount);
+        // 2. Cập nhật Balance + Thu phí giao dịch (0.15% mỗi bên)
+        BigDecimal feePerSide = totalAmount.multiply(PlatformTokenService.FEE_RATE)
+                .setScale(2, RoundingMode.HALF_UP);
+        updateBalances(buyer, seller, totalAmount, feePerSide);
 
         // 3. Cập nhật Portfolio
         updateBuyerPortfolio(buyer, stock, matchQty, matchPrice, totalAmount);
@@ -58,9 +63,13 @@ public class PostTradeProcessor {
         // 4. Cập nhật Stock Price
         updateStockPrice(stock, matchPrice, matchQty);
 
-        log.info("[POST-TRADE] {} {}x{} @ {} | Buyer={} Seller={}",
+        // 5. Ghi nhận phí cho Token SLP
+        BigDecimal totalFee = feePerSide.multiply(BigDecimal.valueOf(2));
+        platformTokenService.recordTradeFee(totalFee, totalAmount);
+
+        log.info("[POST-TRADE] {} {}x{} @ {} | Fee={}x2 | Buyer={} Seller={}",
                 stock.getTicker(), matchQty, matchPrice,
-                totalAmount, buyer.getUsername(), seller.getUsername());
+                totalAmount, feePerSide, buyer.getUsername(), seller.getUsername());
     }
 
     /**
@@ -93,17 +102,17 @@ public class PostTradeProcessor {
 
     /**
      * Cập nhật Balance:
-     * - Buyer: trừ tiền thật (balance) + giảm lockedBalance
-     * - Seller: cộng tiền
+     * - Buyer: trừ tiền thật (balance) + giảm lockedBalance + trừ phí
+     * - Seller: cộng tiền - trừ phí
      */
-    private void updateBalances(User buyer, User seller, BigDecimal totalAmount) {
-        // Buyer: balance -= totalAmount, lockedBalance -= totalAmount
-        buyer.setBalance(buyer.getBalance().subtract(totalAmount));
+    private void updateBalances(User buyer, User seller, BigDecimal totalAmount, BigDecimal feePerSide) {
+        // Buyer: balance -= totalAmount + fee, lockedBalance -= totalAmount
+        buyer.setBalance(buyer.getBalance().subtract(totalAmount).subtract(feePerSide));
         buyer.setLockedBalance(buyer.getLockedBalance().subtract(totalAmount));
         userRepository.save(buyer);
 
-        // Seller: balance += totalAmount
-        seller.setBalance(seller.getBalance().add(totalAmount));
+        // Seller: balance += totalAmount - fee
+        seller.setBalance(seller.getBalance().add(totalAmount).subtract(feePerSide));
         userRepository.save(seller);
     }
 

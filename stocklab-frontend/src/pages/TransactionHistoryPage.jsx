@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { tradeAPI } from '../api/api';
+import { usePageTour } from '../hooks/usePageTour';
 import './TransactionHistoryPage.css';
 
 const TYPE_FILTERS = [
@@ -9,6 +10,7 @@ const TYPE_FILTERS = [
 ];
 
 export default function TransactionHistoryPage() {
+  const { restartTour } = usePageTour('transactions');
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -78,6 +80,7 @@ export default function TransactionHistoryPage() {
               </button>
             ))}
           </div>
+          <button className="page-tour-btn" onClick={restartTour} title="Hướng dẫn trang này">?</button>
         </div>
       </div>
 

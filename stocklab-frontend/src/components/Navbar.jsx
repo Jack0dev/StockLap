@@ -74,6 +74,10 @@ export default function Navbar() {
       title: 'Báo Cáo',
       desc: 'Xuất dữ liệu Excel/PDF',
       path: '/reports',
+      icon: '🪙',
+      title: 'Token SLP',
+      desc: 'Token sàn — giá theo lợi nhuận StockLab',
+      path: '/platform-token',
     },
   ];
 

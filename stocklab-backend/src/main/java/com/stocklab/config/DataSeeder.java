@@ -46,6 +46,7 @@ public class DataSeeder implements CommandLineRunner {
         seedUsers();
         unlockAllExistingUsers();
         seedStocks();
+        seedPlatformToken();
         unlockAllExistingStocks();
         seedBotUser(); // [BOT-1] Module 6
         seedPortfolios();
@@ -202,6 +203,29 @@ public class DataSeeder implements CommandLineRunner {
 
         // [BOT-1] Cấp chứng khoán cho Bot để có thể BÁN
         seedBotPortfolio();
+    }
+
+    private void seedPlatformToken() {
+        if (!stockRepository.existsByTicker("SLP")) {
+            Stock slp = new Stock();
+            slp.setTicker("SLP");
+            slp.setCompanyName("StockLab Platform Token");
+            slp.setExchange("STOCKLAB");
+            
+            BigDecimal initialPrice = new BigDecimal("10000");
+            slp.setReferencePrice(initialPrice);
+            slp.setCurrentPrice(initialPrice);
+            slp.setOpenPrice(initialPrice);
+            slp.setHighPrice(initialPrice);
+            slp.setLowPrice(initialPrice);
+            slp.setChange(BigDecimal.ZERO);
+            slp.setChangePercent(0.0);
+            slp.setVolume(1000000L);
+            slp.setActive(true);
+            
+            stockRepository.save(slp);
+            log.info("💎 Đã tự động khởi tạo Mã Giao Dịch SLP trên sàn!");
+        }
     }
 
     private void seedBotPortfolio() {
