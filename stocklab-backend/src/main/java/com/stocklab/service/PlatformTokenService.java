@@ -2,7 +2,9 @@ package com.stocklab.service;
 
 import com.stocklab.dto.PlatformTokenResponse;
 import com.stocklab.model.PlatformStats;
+import com.stocklab.model.Stock;
 import com.stocklab.repository.PlatformStatsRepository;
+import com.stocklab.repository.StockRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -28,6 +30,7 @@ import java.time.LocalDate;
 public class PlatformTokenService {
 
     private final PlatformStatsRepository statsRepository;
+    private final StockRepository stockRepository;
 
     /** Tỷ lệ phí giao dịch: 0.15% mỗi bên */
     public static final BigDecimal FEE_RATE = new BigDecimal("0.0015");
@@ -106,6 +109,15 @@ public class PlatformTokenService {
                 .setScale(2, RoundingMode.HALF_UP);
 
         stats.setTokenCurrentPrice(newPrice);
+        
+        // Update the actual Stock entity in the database
+        stockRepository.findByTicker(TOKEN_TICKER).ifPresent(slpStock -> {
+            slpStock.setReferencePrice(newPrice);
+            // Optionally update current price if you want it to jump immediately, 
+            // but letting the bot/market move it is more realistic.
+            // slpStock.setCurrentPrice(newPrice); 
+            stockRepository.save(slpStock);
+        });
     }
 
     /**
