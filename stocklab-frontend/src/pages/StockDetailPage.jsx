@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { createChart, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
 import { stockAPI, watchlistAPI } from '../api/api';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { usePageTour } from '../hooks/usePageTour';
 import './StockDetailPage.css';
 
 const RANGES = ['1W', '1M', '3M', '6M', '1Y'];
@@ -10,6 +11,7 @@ const RANGES = ['1W', '1M', '3M', '6M', '1Y'];
 export default function StockDetailPage() {
   const { ticker } = useParams();
   const navigate = useNavigate();
+  const { restartTour } = usePageTour('stockDetail');
   const chartContainerRef = useRef(null);
   const chartRef = useRef(null);
 
@@ -231,6 +233,7 @@ export default function StockDetailPage() {
       <button className="back-link" onClick={() => navigate('/stocks')}>
         ← Quay lại Bảng giá
       </button>
+      <button className="page-tour-btn" onClick={restartTour} style={{ position: 'absolute', top: '70px', right: '24px' }} title="Hướng dẫn trang này">?</button>
 
       {/* Stock Header */}
       <div className="stock-header">

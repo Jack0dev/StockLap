@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { walletAPI } from '../api/api';
+import { usePageTour } from '../hooks/usePageTour';
 import './WalletPage.css';
 
 export default function WalletPage() {
   const { user, fetchUserProfile } = useAuth();
+  const { restartTour } = usePageTour('wallet');
   const [activeTab, setActiveTab] = useState('deposit');
 
   // Deposit state
@@ -175,8 +177,11 @@ export default function WalletPage() {
   return (
     <div className="wallet-container fade-in">
       <div className="wallet-header">
-        <h1>Quản Lý Giao Dịch Tiền</h1>
-        <p>Nạp thêm nguồn vốn hoặc rút lợi nhuận về tài khoản cá nhân</p>
+        <div>
+          <h1>Quản Lý Giao Dịch Tiền</h1>
+          <p>Nạp thêm nguồn vốn hoặc rút lợi nhuận về tài khoản cá nhân</p>
+        </div>
+        <button className="page-tour-btn" onClick={restartTour} title="Hướng dẫn trang này">?</button>
       </div>
 
       <div className="wallet-grid">

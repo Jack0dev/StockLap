@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { stockAPI, tradeAPI, orderAPI, userAPI, otpAPI } from '../api/api';
+import { usePageTour } from '../hooks/usePageTour';
 import './TradingPage.css';
 
 export default function TradingPage() {
   const { user } = useAuth();
+  const { restartTour } = usePageTour('trading');
   const [activeTab, setActiveTab] = useState('BUY');
   const [orderType] = useState('LIMIT');
   const [ticker, setTicker] = useState('');
@@ -217,15 +219,18 @@ export default function TradingPage() {
     <div className="trading-page fade-in">
       <div className="trading-header">
         <h2>📊 Đặt lệnh</h2>
-        <div className="balance-display">
-          <div className="balance-item">
-            <span className="balance-label">Tổng tài sản</span>
-            <span className="balance-value">{formatPrice(balance)} VND</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="balance-display">
+            <div className="balance-item">
+              <span className="balance-label">Tổng tài sản</span>
+              <span className="balance-value">{formatPrice(balance)} VND</span>
+            </div>
+            <div className="balance-item">
+              <span className="balance-label">Số dư khả dụng</span>
+              <span className="balance-value available">{formatPrice(availableBalance)} VND</span>
+            </div>
           </div>
-          <div className="balance-item">
-            <span className="balance-label">Số dư khả dụng</span>
-            <span className="balance-value available">{formatPrice(availableBalance)} VND</span>
-          </div>
+          <button className="page-tour-btn" onClick={restartTour} title="Hướng dẫn trang này">?</button>
         </div>
       </div>
 

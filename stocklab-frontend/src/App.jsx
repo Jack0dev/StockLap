@@ -3,6 +3,7 @@ import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
 import Navbar from './components/Navbar'
+import TourOverlay from './components/TourOverlay'
 
 // Route modules — mỗi module quản lý route riêng, tránh conflict
 import publicRoutes from './routes/PublicRoutes'
@@ -17,6 +18,7 @@ function AppLayout() {
       <main style={{ flex: 1 }}>
         <Outlet />
       </main>
+      <TourOverlay />
     </>
   )
 }

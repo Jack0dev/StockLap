@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { botAPI } from '../api/api';
+import { usePageTour } from '../hooks/usePageTour';
 import './BotActivityPage.css';
 
 export default function BotActivityPage() {
+  const { restartTour } = usePageTour('botActivity');
   const [status, setStatus] = useState(null);
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -69,14 +71,17 @@ export default function BotActivityPage() {
           <h2>🤖 Trading Bot</h2>
           <span className="bot-subtitle">Hệ thống tạo thanh khoản tự động</span>
         </div>
-        <label className="bot-auto-refresh">
-          <input
-            type="checkbox"
-            checked={autoRefresh}
-            onChange={(e) => setAutoRefresh(e.target.checked)}
-          />
-          Tự động cập nhật (3s)
-        </label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <label className="bot-auto-refresh">
+            <input
+              type="checkbox"
+              checked={autoRefresh}
+              onChange={(e) => setAutoRefresh(e.target.checked)}
+            />
+            Tự động cập nhật (3s)
+          </label>
+          <button className="page-tour-btn" onClick={restartTour} title="Hướng dẫn trang này">?</button>
+        </div>
       </div>
 
       {/* Status Cards */}
