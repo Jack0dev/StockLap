@@ -211,7 +211,6 @@ public class DataSeeder implements CommandLineRunner {
             slp.setTicker("SLP");
             slp.setCompanyName("StockLab Platform Token");
             slp.setExchange("STOCKLAB");
-            slp.setIndustry("Crypto");
             
             BigDecimal initialPrice = new BigDecimal("10000");
             slp.setReferencePrice(initialPrice);
@@ -219,12 +218,10 @@ public class DataSeeder implements CommandLineRunner {
             slp.setOpenPrice(initialPrice);
             slp.setHighPrice(initialPrice);
             slp.setLowPrice(initialPrice);
-            slp.setCeilingPrice(initialPrice.multiply(BigDecimal.valueOf(1.07)));
-            slp.setFloorPrice(initialPrice.multiply(BigDecimal.valueOf(0.93)));
             slp.setChange(BigDecimal.ZERO);
             slp.setChangePercent(0.0);
             slp.setVolume(1000000L);
-            slp.setIsActive(true);
+            slp.setActive(true);
             
             stockRepository.save(slp);
             log.info("💎 Đã tự động khởi tạo Mã Giao Dịch SLP trên sàn!");
