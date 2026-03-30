@@ -70,6 +70,10 @@ export default function Navbar() {
       path: '/bot-activity',
     },
     {
+      icon: '📄',
+      title: 'Báo Cáo',
+      desc: 'Xuất dữ liệu Excel/PDF',
+      path: '/reports',
       icon: '🪙',
       title: 'Token SLP',
       desc: 'Token sàn — giá theo lợi nhuận StockLab',

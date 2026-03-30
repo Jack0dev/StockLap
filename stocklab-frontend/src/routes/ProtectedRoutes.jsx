@@ -10,6 +10,7 @@ import OrderBookPage from '../pages/OrderBookPage'
 import ConditionalOrderPage from '../pages/ConditionalOrderPage'
 import WalletPage from '../pages/WalletPage'
 import BotActivityPage from '../pages/BotActivityPage'
+import ReportPage from '../pages/ReportPage'
 import PlatformTokenPage from '../pages/PlatformTokenPage'
 
 const protectedRoutes = [
@@ -25,6 +26,7 @@ const protectedRoutes = [
   { path: '/order-book', element: <OrderBookPage /> },
   { path: '/wallet', element: <WalletPage /> },
   { path: '/bot-activity', element: <BotActivityPage /> },
+  { path: '/reports', element: <ReportPage /> },
   { path: '/platform-token', element: <PlatformTokenPage /> },
 ]
 
