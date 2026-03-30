@@ -155,4 +155,9 @@ export const adminOrderAPI = {
   forceCancelOrder: (id) => api.put(`/admin/orders/${id}/cancel`),
 };
 
+// ===== Export APIs =====
+export const exportAPI = {
+  exportTransactions: () => api.get('/reports/transactions/export', { responseType: 'blob' }),
+};
+
 export default api;
