@@ -113,9 +113,10 @@ public class PlatformTokenService {
         // Update the actual Stock entity in the database
         stockRepository.findByTicker(TOKEN_TICKER).ifPresent(slpStock -> {
             slpStock.setReferencePrice(newPrice);
-            // Optionally update current price if you want it to jump immediately, 
-            // but letting the bot/market move it is more realistic.
-            // slpStock.setCurrentPrice(newPrice); 
+            slpStock.setCurrentPrice(newPrice); 
+            if (newPrice.compareTo(slpStock.getHighPrice()) > 0) {
+                slpStock.setHighPrice(newPrice);
+            }
             stockRepository.save(slpStock);
         });
     }

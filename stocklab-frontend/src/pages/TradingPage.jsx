@@ -125,12 +125,16 @@ export default function TradingPage() {
     ? effectivePrice * Number(quantity)
     : 0;
 
+  const feeAmount = totalAmount * 0.0015; // 0.15% phí giao dịch
+  const finalBuyTotal = totalAmount + feeAmount;
+  const finalSellTotal = totalAmount - feeAmount;
+
   const holdingQty = portfolio.find(p => p.ticker === selectedStock?.ticker)?.quantity || 0;
 
   const canTrade = () => {
     if (!selectedStock || !quantity || Number(quantity) <= 0) return false;
     if (!price || Number(price) <= 0) return false;
-    if (activeTab === 'BUY') return availableBalance >= totalAmount;
+    if (activeTab === 'BUY') return availableBalance >= finalBuyTotal;
     if (activeTab === 'SELL') return holdingQty >= Number(quantity);
     return false;
   };
@@ -420,18 +424,22 @@ export default function TradingPage() {
                   <span>Số lượng</span>
                   <span>{Number(quantity).toLocaleString('vi-VN')} CP</span>
                 </div>
+                <div className="summary-row">
+                  <span>Phí dự kiến (0.15%)</span>
+                  <span>{formatPrice(feeAmount)} VND</span>
+                </div>
                 <div className="summary-divider"></div>
                 <div className="summary-row total">
-                  <span>Tổng tiền</span>
+                  <span>{activeTab === 'BUY' ? 'Tổng chi phí' : 'Tổng nhận'}</span>
                   <span className={activeTab === 'BUY' ? 'text-danger' : 'text-success'}>
-                    {activeTab === 'BUY' ? '-' : '+'}{formatPrice(totalAmount)} VND
+                    {activeTab === 'BUY' ? '-' : '+'}{formatPrice(activeTab === 'BUY' ? finalBuyTotal : finalSellTotal)} VND
                   </span>
                 </div>
                 {activeTab === 'BUY' && (
                   <div className="summary-row">
                   <span>Số dư sau GD</span>
-                  <span className={availableBalance - totalAmount < 0 ? 'text-danger' : ''}>
-                    {formatPrice(availableBalance - totalAmount)} VND
+                  <span className={availableBalance - finalBuyTotal < 0 ? 'text-danger' : ''}>
+                    {formatPrice(availableBalance - finalBuyTotal)} VND
                   </span>
                 </div>
                 )}
@@ -482,8 +490,8 @@ export default function TradingPage() {
               )}
             </button>
 
-            {activeTab === 'BUY' && selectedStock && quantity > 0 && availableBalance < totalAmount && (
-              <div className="insufficient-msg">⚠️ Số dư không đủ để thực hiện giao dịch</div>
+            {activeTab === 'BUY' && selectedStock && quantity > 0 && availableBalance < finalBuyTotal && (
+              <div className="insufficient-msg">⚠️ Số dư không đủ để bao gồm Phí giao dịch (0.15%)</div>
             )}
           </div>
         </div>

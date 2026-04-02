@@ -54,7 +54,7 @@ public class PostTradeProcessor {
         // 2. Cập nhật Balance + Thu phí giao dịch (0.15% mỗi bên)
         BigDecimal feePerSide = totalAmount.multiply(PlatformTokenService.FEE_RATE)
                 .setScale(2, RoundingMode.HALF_UP);
-        updateBalances(buyer, seller, totalAmount, feePerSide);
+        updateBalances(buyer, seller, totalAmount, feePerSide, buyOrder.getPrice(), matchQty);
 
         // 3. Cập nhật Portfolio
         updateBuyerPortfolio(buyer, stock, matchQty, matchPrice, totalAmount);
@@ -102,13 +102,20 @@ public class PostTradeProcessor {
 
     /**
      * Cập nhật Balance:
-     * - Buyer: trừ tiền thật (balance) + giảm lockedBalance + trừ phí
-     * - Seller: cộng tiền - trừ phí
+     * - Buyer: trừ tiền thật (balance) theo giá khớp thực tế + phí thực tế
+     *          Và gỡ phong tòa (unlock) số tiền đã lock theo giá đặt ban đầu (Order Price) + phí dự kiến
+     * - Seller: cộng tiền khớp lệnh - trừ phí
      */
-    private void updateBalances(User buyer, User seller, BigDecimal totalAmount, BigDecimal feePerSide) {
-        // Buyer: balance -= totalAmount + fee, lockedBalance -= totalAmount
+    private void updateBalances(User buyer, User seller, BigDecimal totalAmount, BigDecimal feePerSide, BigDecimal buyOrderPrice, int matchQty) {
+        // Buyer: 
+        // 1. Tính số tiền đã khóa khi đặt lệnh cho lượng CP này
+        BigDecimal lockedSubTotal = buyOrderPrice.multiply(BigDecimal.valueOf(matchQty));
+        BigDecimal lockedFee = lockedSubTotal.multiply(PlatformTokenService.FEE_RATE).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalLockedReleased = lockedSubTotal.add(lockedFee);
+        
+        // 2. Cập nhật
         buyer.setBalance(buyer.getBalance().subtract(totalAmount).subtract(feePerSide));
-        buyer.setLockedBalance(buyer.getLockedBalance().subtract(totalAmount));
+        buyer.setLockedBalance(buyer.getLockedBalance().subtract(totalLockedReleased));
         userRepository.save(buyer);
 
         // Seller: balance += totalAmount - fee
