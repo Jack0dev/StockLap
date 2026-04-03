@@ -3,6 +3,7 @@ package com.stocklab.service;
 import com.stocklab.dto.*;
 import com.stocklab.model.*;
 import com.stocklab.repository.*;
+import com.stocklab.service.PlatformTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -99,17 +100,20 @@ public class OrderService {
     private ApiResponse<OrderResponse> placeBuyOrder(User user, Stock stock, OrderType orderType,
             BigDecimal price, int quantity) {
         BigDecimal totalCost = price.multiply(BigDecimal.valueOf(quantity));
+        BigDecimal fee = totalCost.multiply(PlatformTokenService.FEE_RATE).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalRequired = totalCost.add(fee);
+        
         BigDecimal availableBalance = user.getAvailableBalance();
 
-        // Validate số dư khả dụng
-        if (availableBalance.compareTo(totalCost) < 0) {
+        // Validate số dư khả dụng (Tiền gốc + Phí)
+        if (availableBalance.compareTo(totalRequired) < 0) {
             return ApiResponse.error("Số dư khả dụng không đủ! Cần " +
-                    formatCurrency(totalCost) + " VND, khả dụng: " +
+                    formatCurrency(totalRequired) + " VND (Bao gồm phí), khả dụng: " +
                     formatCurrency(availableBalance) + " VND");
         }
 
-        // Lock tiền
-        user.setLockedBalance(user.getLockedBalance().add(totalCost));
+        // Lock tiền (Gốc + Phí dự kiến)
+        user.setLockedBalance(user.getLockedBalance().add(totalRequired));
         userRepository.save(user);
 
         // Tạo Order
@@ -244,9 +248,12 @@ public class OrderService {
 
         // Unlock tài sản theo remaining quantity
         if (order.getSide() == OrderSide.BUY) {
-            // Hoàn tiền locked = remaining * price
-            BigDecimal refund = order.getPrice().multiply(BigDecimal.valueOf(remainingQty));
-            user.setLockedBalance(user.getLockedBalance().subtract(refund));
+            // Hoàn tiền locked = (remaining * price) + fee của phần đó
+            BigDecimal refundSubTotal = order.getPrice().multiply(BigDecimal.valueOf(remainingQty));
+            BigDecimal refundFee = refundSubTotal.multiply(PlatformTokenService.FEE_RATE).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal totalRefund = refundSubTotal.add(refundFee);
+            
+            user.setLockedBalance(user.getLockedBalance().subtract(totalRefund));
             userRepository.save(user);
         } else {
             // Hoàn CP locked
@@ -305,8 +312,11 @@ public class OrderService {
         int remainingQty = oldOrder.getRemainingQuantity();
 
         if (oldOrder.getSide() == OrderSide.BUY) {
-            BigDecimal refund = oldOrder.getPrice().multiply(BigDecimal.valueOf(remainingQty));
-            user.setLockedBalance(user.getLockedBalance().subtract(refund));
+            BigDecimal refundSubTotal = oldOrder.getPrice().multiply(BigDecimal.valueOf(remainingQty));
+            BigDecimal refundFee = refundSubTotal.multiply(PlatformTokenService.FEE_RATE).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal totalRefund = refundSubTotal.add(refundFee);
+            
+            user.setLockedBalance(user.getLockedBalance().subtract(totalRefund));
         } else {
             Portfolio portfolio = portfolioRepository
                     .findByUserIdAndStockId(user.getId(), oldOrder.getStock().getId())
@@ -326,13 +336,16 @@ public class OrderService {
 
         // Lock tài sản mới
         if (oldOrder.getSide() == OrderSide.BUY) {
-            BigDecimal lockAmount = newPrice.multiply(BigDecimal.valueOf(newQuantity));
+            BigDecimal newSubTotal = newPrice.multiply(BigDecimal.valueOf(newQuantity));
+            BigDecimal newFee = newSubTotal.multiply(PlatformTokenService.FEE_RATE).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal lockAmount = newSubTotal.add(newFee);
+            
             BigDecimal available = user.getBalance().subtract(user.getLockedBalance());
             if (available.compareTo(lockAmount) < 0) {
                 // Rollback cancel — unlock đã xảy ra nên phải lock lại
                 // Nhưng vì đã cancel rồi, trả error cho user biết
                 userRepository.save(user);
-                return ApiResponse.error("Không đủ số dư để đặt lệnh mới. Lệnh cũ đã được hủy. " +
+                return ApiResponse.error("Không đủ số dư để đặt lệnh mới (Bao gồm phí). Lệnh cũ đã được hủy. " +
                         "Số dư khả dụng: " + formatCurrency(available) + " VND, cần: " + formatCurrency(lockAmount) + " VND");
             }
             user.setLockedBalance(user.getLockedBalance().add(lockAmount));
@@ -492,8 +505,11 @@ public class OrderService {
         // Unlock tài sản theo remaining quantity
         User orderOwner = order.getUser();
         if (order.getSide() == OrderSide.BUY) {
-            BigDecimal refund = order.getPrice().multiply(BigDecimal.valueOf(remainingQty));
-            orderOwner.setLockedBalance(orderOwner.getLockedBalance().subtract(refund));
+            BigDecimal refundSubTotal = order.getPrice().multiply(BigDecimal.valueOf(remainingQty));
+            BigDecimal refundFee = refundSubTotal.multiply(PlatformTokenService.FEE_RATE).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal totalRefund = refundSubTotal.add(refundFee);
+            
+            orderOwner.setLockedBalance(orderOwner.getLockedBalance().subtract(totalRefund));
             userRepository.save(orderOwner);
         } else {
             Portfolio portfolio = portfolioRepository
