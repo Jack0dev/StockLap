@@ -12,6 +12,7 @@ import WalletPage from '../pages/WalletPage'
 import BotActivityPage from '../pages/BotActivityPage'
 import ReportPage from '../pages/ReportPage'
 import PlatformTokenPage from '../pages/PlatformTokenPage'
+import VnPayResultPage from '../pages/VnPayResultPage'
 
 const protectedRoutes = [
   { path: '/profile', element: <ProfilePage /> },
@@ -25,6 +26,7 @@ const protectedRoutes = [
   { path: '/orders', element: <OrderHistoryPage /> },
   { path: '/order-book', element: <OrderBookPage /> },
   { path: '/wallet', element: <WalletPage /> },
+  { path: '/payment-result', element: <VnPayResultPage /> },
   { path: '/bot-activity', element: <BotActivityPage /> },
   { path: '/reports', element: <ReportPage /> },
   { path: '/platform-token', element: <PlatformTokenPage /> },

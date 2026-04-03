@@ -134,6 +134,12 @@ export const walletAPI = {
   getHistory: (page = 0, size = 20) => api.get('/wallet/history', { params: { page, size } }),
 };
 
+// ===== VNPay APIs =====
+export const vnpayAPI = {
+  createPayment: (data) => api.post('/vnpay/create-payment', data),
+  getResult: (params) => api.get('/vnpay/return', { params }),
+};
+
 // ===== Bot APIs (Module 6) =====
 export const botAPI = {
   getStatus: () => api.get('/bot/status'),

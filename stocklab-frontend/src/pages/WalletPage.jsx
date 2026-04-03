@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { walletAPI } from '../api/api';
+import { walletAPI, vnpayAPI } from '../api/api';
 import { usePageTour } from '../hooks/usePageTour';
 import './WalletPage.css';
 
@@ -11,9 +11,7 @@ export default function WalletPage() {
 
   // Deposit state
   const [depositAmount, setDepositAmount] = useState('');
-  const [bankName, setBankName] = useState('MB'); // Mặc định MB Bank
-  const [bankAccount, setBankAccount] = useState('');
-  const [pendingDeposit, setPendingDeposit] = useState(null); // Lưu thông tin thanh toán PENDING
+  const [pendingPayment, setPendingPayment] = useState(null); // {paymentUrl, txnRef, amount}
 
   // Withdraw state
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -99,11 +97,11 @@ export default function WalletPage() {
   };
 
 
-  // ----- LOGIC NẠP TIỀN -----
+  // ----- LOGIC NẠP TIỀN QUA VNPAY -----
   const handleDeposit = async (e) => {
     e.preventDefault();
-    if (!depositAmount || Number(depositAmount) <= 0) {
-      setMessage({ type: 'error', text: 'Vui lòng nhập số tiền hợp lệ (>0)' });
+    if (!depositAmount || Number(depositAmount) < 10000) {
+      setMessage({ type: 'error', text: 'Số tiền nạp tối thiểu là 10.000 VNĐ' });
       return;
     }
 
@@ -111,25 +109,17 @@ export default function WalletPage() {
     setMessage({ type: '', text: '' });
 
     try {
-      const payload = {
-        amount: Number(depositAmount),
-        bankName: bankName,
-        bankAccount: bankAccount
-      };
-      const res = await walletAPI.deposit(payload);
+      const res = await vnpayAPI.createPayment({ amount: Number(depositAmount) });
       if (res.data.success) {
-        // Lưu thông tin để render QR Payment Card
-        setPendingDeposit({
+        setPendingPayment({
+          paymentUrl: res.data.data.paymentUrl,
+          txnRef: res.data.data.txnRef,
           amount: Number(depositAmount),
-          transactionCode: res.data.data.transactionCode,
-          bankName: bankName
         });
-        setMessage({ type: '', text: '' }); // Xóa message, dùng giao diện QR luôn
-        setDepositAmount('');
-        if (fetchUserProfile) await fetchUserProfile();
-        fetchHistory(); // Làm mới lịch sử để thấy lệnh PENDING
+        setMessage({ type: '', text: '' });
+        fetchHistory();
       } else {
-        setMessage({ type: 'error', text: res.data.message || 'Lỗi khi nạp tiền' });
+        setMessage({ type: 'error', text: res.data.message || 'Lỗi khi tạo thanh toán' });
       }
     } catch (err) {
       console.error(err);
@@ -137,6 +127,19 @@ export default function WalletPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const [copiedField, setCopiedField] = useState('');
+  const copyToClipboard = (text, field) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(''), 2000);
+  };
+
+  const VNPAY_BANK_INFO = {
+    bankName: 'VNPay - Cổng thanh toán',
+    accountName: user?.fullName || user?.username || 'StockLab User',
+    accountNo: 'Thanh toán qua cổng VNPay',
   };
 
   const fetchHistory = async () => {
@@ -161,18 +164,6 @@ export default function WalletPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    // Hiện thông báo nhỏ (tùy chọn)
-  };
-
-  // Helper cho giao diện chuyển khoản
-  const SYSTEM_BANK = {
-    accountNo: '8858253943',
-    accountName: 'STOCK LAB CK', 
-    bankName: 'MB Bank',
-    bankId: 'MB' // Mã cho VietQR
-  };
 
   return (
     <div className="wallet-container fade-in">
@@ -232,97 +223,184 @@ export default function WalletPage() {
 
             {activeTab === 'deposit' && (
               <div className="deposit-section">
-                {pendingDeposit ? (
-                  // GIAO DIỆN THANH TOÁN QR PAYMENT CHUYÊN NGHIỆP
-                  <div className="payment-card-wrapper slide-in" style={{ maxWidth: '420px', margin: '0 auto', background: '#f5f7fa', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
+                {pendingPayment ? (
+                  /* === GIAO DIỆN NẠP TIỀN QUA MÃ QR (SSI-STYLE) === */
+                  <div className="deposit-qr-layout">
+                    <h3 className="deposit-qr-title">NẠP TIỀN QUA MÃ QR</h3>
                     
-                    {/* Header màu (VD màu xanh MB) */}
-                    <div className="payment-header" style={{ background: '#1c3d9a', padding: '20px', textAlign: 'center' }}>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', background: '#fff', borderRadius: '8px', padding: '5px 15px' }}>
-                        <span style={{ color: '#1c3d9a', fontWeight: 'bold', fontSize: '1.2rem' }}>MB</span>
-                        <span style={{ color: '#f5222d', fontWeight: 'bold', fontSize: '1.2rem', marginLeft: '4px' }}>BANK</span>
+                    <div className="deposit-qr-grid">
+                      {/* BÊN TRÁI: Thông tin chuyển khoản */}
+                      <div className="deposit-info-panel">
+                        {/* Tài khoản */}
+                        <div className="info-row">
+                          <span className="info-label">Tài khoản nạp tiền</span>
+                          <div className="info-value-group">
+                            <span className="info-value">{user?.username || 'StockLab'} - TK tiền mặt - {user?.fullName || user?.username}</span>
+                          </div>
+                        </div>
+
+                        {/* Số tiền */}
+                        <div className="info-row">
+                          <span className="info-label">Số tiền</span>
+                          <div className="info-value-group">
+                            <span className="info-value highlight">{formatCurrency(pendingPayment.amount)} VNĐ</span>
+                            <button className="copy-btn" onClick={() => copyToClipboard(String(pendingPayment.amount), 'amount')}>
+                              {copiedField === 'amount' ? '✓' : '📋'}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Ngân hàng */}
+                        <div className="info-row">
+                          <span className="info-label">Cổng thanh toán</span>
+                          <div className="info-value-group">
+                            <span className="info-value">VNPay - Cổng thanh toán trực tuyến</span>
+                          </div>
+                        </div>
+
+                        {/* Tên chủ tài khoản */}
+                        <div className="info-row">
+                          <span className="info-label">Tên chủ tài khoản</span>
+                          <div className="info-value-group">
+                            <span className="info-value">{user?.fullName || user?.username || 'StockLab User'}</span>
+                            <button className="copy-btn" onClick={() => copyToClipboard(user?.fullName || user?.username || '', 'name')}>
+                              {copiedField === 'name' ? '✓' : '📋'}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Mã giao dịch */}
+                        <div className="info-row">
+                          <span className="info-label">Mã giao dịch</span>
+                          <div className="info-value-group">
+                            <span className="info-value">{pendingPayment.txnRef}</span>
+                            <button className="copy-btn" onClick={() => copyToClipboard(pendingPayment.txnRef, 'txnRef')}>
+                              {copiedField === 'txnRef' ? '✓' : '📋'}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Nội dung */}
+                        <div className="info-row">
+                          <span className="info-label">Nội dung</span>
+                          <div className="info-value-group">
+                            <span className="info-value">Nap tien {pendingPayment.txnRef} tai StockLab</span>
+                            <button className="copy-btn" onClick={() => copyToClipboard(`Nap tien ${pendingPayment.txnRef} tai StockLab`, 'content')}>
+                              {copiedField === 'content' ? '✓' : '📋'}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Buttons */}
+                        <div className="deposit-qr-actions">
+                          <button 
+                            className="btn-create-qr"
+                            onClick={() => { setPendingPayment(null); setDepositAmount(''); }}
+                          >
+                            Tạo lệnh mới
+                          </button>
+                          <a 
+                            href={pendingPayment.paymentUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="btn-direct-pay"
+                          >
+                            Thanh toán trực tiếp →
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* BÊN PHẢI: QR Code */}
+                      <div className="deposit-qr-panel">
+                        <div className="qr-code-wrapper">
+                          <img 
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(pendingPayment.paymentUrl)}`}
+                            alt="Mã QR Thanh Toán VNPay"
+                            className="qr-code-img"
+                          />
+                        </div>
+                        <div className="qr-info-box">
+                          <div className="qr-info-row">
+                            <span className="qr-info-label">Tên chủ TK</span>
+                            <span className="qr-info-value">{user?.fullName || user?.username}</span>
+                          </div>
+                          <div className="qr-info-row">
+                            <span className="qr-info-label">Mã GD</span>
+                            <span className="qr-info-value">{pendingPayment.txnRef}</span>
+                          </div>
+                          <div className="qr-info-row">
+                            <span className="qr-info-label">Nội dung CK</span>
+                            <span className="qr-info-value">Nap tien {pendingPayment.txnRef} tai StockLab</span>
+                          </div>
+                        </div>
+                        <a 
+                          href={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(pendingPayment.paymentUrl)}`}
+                          download={`vnpay-qr-${pendingPayment.txnRef}.png`}
+                          className="btn-download-qr"
+                        >
+                          ↓ Tải về
+                        </a>
                       </div>
                     </div>
 
-                    <div className="payment-body" style={{ padding: '20px 20px 30px 20px', textAlign: 'center' }}>
-                      {/* QR Code */}
-                      <div className="qr-wrapper" style={{ margin: '0 auto', padding: '10px', background: '#fff', borderRadius: '12px', display: 'inline-block', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                        <img 
-                          src={`https://img.vietqr.io/image/${SYSTEM_BANK.bankId}-${SYSTEM_BANK.accountNo}-compact2.png?amount=${pendingDeposit.amount}&addInfo=${pendingDeposit.transactionCode}&accountName=${SYSTEM_BANK.accountName.replace(/ /g, '%20')}`} 
-                          alt="Mã QR Thanh Toán"
-                          style={{ width: '220px', height: '220px', display: 'block' }}
-                        />
-                      </div>
-                      <p style={{ color: '#4a5568', margin: '15px 0 25px 0', fontSize: '0.95rem' }}>Quét mã QR để thanh toán nhanh</p>
-
-                      {/* Các khối thông tin có nút Copy */}
-                      <div className="payment-info-box" style={{ background: '#eef2fb', border: '1px solid #dbe4f0', borderRadius: '12px', padding: '12px 16px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left' }}>
-                        <div>
-                          <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#3182ce', textTransform: 'uppercase', marginBottom: '4px' }}>Số tài khoản</div>
-                          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#2b6cb0' }}>{SYSTEM_BANK.accountNo}</div>
-                        </div>
-                        <button onClick={() => copyToClipboard(SYSTEM_BANK.accountNo)} style={{ background: '#fff', border: 'none', borderRadius: '8px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#3182ce', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                        </button>
-                      </div>
-
-                      <div className="payment-info-box" style={{ background: '#fff', border: '1px solid #edf2f7', borderRadius: '12px', padding: '12px 16px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left' }}>
-                        <div>
-                          <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#4a5568', textTransform: 'uppercase', marginBottom: '4px' }}>Chủ tài khoản</div>
-                          <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#1a202c' }}>{SYSTEM_BANK.accountName}</div>
-                        </div>
-                        <div style={{ background: '#f7fafc', border: '1px solid #edf2f7', borderRadius: '8px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#718096' }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                        </div>
-                      </div>
-
-                      <div className="payment-info-box" style={{ background: '#f0fff4', border: '1px solid #c6f6d5', borderRadius: '12px', padding: '12px 16px', marginBottom: '25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left' }}>
-                        <div>
-                          <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#38a169', textTransform: 'uppercase', marginBottom: '4px' }}>Nội dung chuyển</div>
-                          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#276749' }}>{pendingDeposit.transactionCode}</div>
-                        </div>
-                        <button onClick={() => copyToClipboard(pendingDeposit.transactionCode)} style={{ background: '#fff', border: 'none', borderRadius: '8px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#38a169', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                        </button>
-                      </div>
-
+                    {/* Lưu ý */}
+                    <div className="deposit-note">
+                      <span>•</span> Quét mã QR bằng ứng dụng ngân hàng hoặc camera điện thoại để thanh toán qua VNPay. Tiền sẽ được cộng tự động sau khi thanh toán thành công.
                     </div>
-                    
-                    {/* Footer Button */}
-                    <button 
-                      onClick={() => { setPendingDeposit(null); setActiveTab('history'); }}
-                      style={{ width: '100%', padding: '18px', background: '#3182ce', color: '#fff', border: 'none', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', letterSpacing: '0.5px' }}>
-                      Hoàn tất / Kiểm tra số dư lịch sử
-                    </button>
                   </div>
-
                 ) : (
-                  <>
-                    <form className="wallet-form form-box" onSubmit={handleDeposit} style={{ background: '#1a1d24', padding: '25px', borderRadius: '12px' }}>
-                      <h4 className="mb-4 text-white">Khởi Tạo Lệnh Nạp Tiền</h4>
-                      <div className="form-group mb-4">
-                        <label className="text-muted">Nhập số tiền cần nạp (VNĐ)</label>
+                  /* === FORM NHẬP SỐ TIỀN === */
+                  <form className="wallet-form form-box" onSubmit={handleDeposit} style={{ background: '#1a1d24', padding: '25px', borderRadius: '12px' }}>
+                    <h4 className="mb-4 text-white" style={{ textAlign: 'center', textTransform: 'uppercase', letterSpacing: '1px' }}>Nạp Tiền Qua Mã QR</h4>
+                    
+                    <div className="form-group mb-4">
+                      <label className="text-muted">Số tiền (VNĐ)</label>
+                      <div style={{ position: 'relative' }}>
                         <input 
                           type="number" 
                           className="form-control" 
-                          placeholder="VD: 5000000"
+                          placeholder="Nhập số tiền cần nạp"
                           value={depositAmount}
                           onChange={(e) => setDepositAmount(e.target.value)}
                           min="10000"
                           step="10000"
                           required
-                          style={{ fontSize: '1.2rem', padding: '12px' }}
+                          style={{ fontSize: '1.1rem', padding: '12px 60px 12px 12px' }}
                         />
-                        <small className="form-text text-muted mt-2">Tối thiểu: 10,000 VNĐ</small>
+                        <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: '#718096', fontWeight: '600' }}>VND</span>
                       </div>
+                      <small className="form-text text-muted mt-2">Tối thiểu: 10,000 VNĐ</small>
+                    </div>
 
-                      <div className="form-actions mt-4">
-                        <button type="submit" className="btn btn-primary btn-block" disabled={loading} style={{ padding: '12px', fontSize: '1.1rem' }}>
-                          {loading ? 'Đang khởi tạo lệnh...' : 'Tiếp tục / Lấy mã QR'}
+                    {/* Quick amount buttons */}
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                      {[100000, 500000, 1000000, 5000000, 10000000].map(amt => (
+                        <button 
+                          key={amt} 
+                          type="button" 
+                          onClick={() => setDepositAmount(String(amt))}
+                          style={{
+                            background: Number(depositAmount) === amt ? '#e53e3e' : '#2d3748',
+                            color: Number(depositAmount) === amt ? '#fff' : '#a0aec0',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '8px 14px',
+                            fontSize: '0.85rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {formatCurrency(amt)}₫
                         </button>
-                      </div>
-                    </form>
-                  </>
+                      ))}
+                    </div>
+
+                    <div className="form-actions mt-4">
+                      <button type="submit" className="btn-create-qr" disabled={loading} style={{ width: '100%', padding: '14px', fontSize: '1.05rem' }}>
+                        {loading ? 'Đang tạo mã QR...' : 'Tạo mã QR'}
+                      </button>
+                    </div>
+                  </form>
                 )}
               </div>
             )}
