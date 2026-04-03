@@ -1,6 +1,6 @@
 .wallet-container {
   padding: 24px;
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -346,4 +346,249 @@ select.form-control option {
     flex-direction: column;
     gap: 0;
   }
+  .deposit-qr-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .deposit-qr-panel {
+    order: -1;
+  }
+}
+
+/* ===== DEPOSIT QR LAYOUT (SSI-STYLE) ===== */
+.deposit-qr-layout {
+  background: #1a1d24;
+  border-radius: 12px;
+  padding: 30px 35px;
+  border: 1px solid #2d3748;
+  overflow: hidden;
+}
+
+.deposit-qr-title {
+  text-align: center;
+  color: #e2e8f0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin-bottom: 28px;
+  text-transform: uppercase;
+}
+
+.deposit-qr-grid {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 40px;
+  align-items: start;
+}
+
+/* Left panel: info rows */
+.deposit-info-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.info-row {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  align-items: center;
+  padding: 13px 0;
+  border-bottom: 1px solid #2d3748;
+  gap: 16px;
+}
+
+.info-row:last-of-type {
+  border-bottom: none;
+}
+
+.info-label {
+  color: #718096;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.info-value-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.info-value {
+  color: #e2e8f0;
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-align: right;
+  word-break: break-all;
+}
+
+.info-value.highlight {
+  color: #48bb78;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.copy-btn {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: #a0aec0;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.copy-btn:hover {
+  background: #4a5568;
+  color: #e2e8f0;
+}
+
+/* QR Actions */
+.deposit-qr-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+}
+
+.btn-create-qr {
+  background: linear-gradient(135deg, #e53e3e, #c53030);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-create-qr:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(229, 62, 62, 0.3);
+}
+
+.btn-create-qr:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-direct-pay {
+  background: #2d3748;
+  color: #a0aec0;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-direct-pay:hover {
+  background: #4a5568;
+  color: #e2e8f0;
+}
+
+/* Right panel: QR code */
+.deposit-qr-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.qr-code-wrapper {
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  display: inline-block;
+}
+
+.qr-code-img {
+  width: 200px;
+  height: 200px;
+  display: block;
+}
+
+.qr-info-box {
+  background: #12151a;
+  border: 1px solid #2d3748;
+  border-radius: 10px;
+  padding: 12px 16px;
+  width: 100%;
+}
+
+.qr-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 0.8rem;
+}
+
+.qr-info-row:not(:last-child) {
+  border-bottom: 1px solid #1e2530;
+}
+
+.qr-info-label {
+  color: #718096;
+  font-weight: 600;
+}
+
+.qr-info-value {
+  color: #e2e8f0;
+  font-weight: 500;
+  text-align: right;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-download-qr {
+  background: #2d3748;
+  color: #a0aec0;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-download-qr:hover {
+  background: #4a5568;
+  color: #e2e8f0;
+}
+
+/* Note */
+.deposit-note {
+  margin-top: 20px;
+  padding: 12px 16px;
+  background: rgba(229, 62, 62, 0.05);
+  border: 1px solid rgba(229, 62, 62, 0.15);
+  border-radius: 8px;
+  color: #fc8181;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.deposit-note span {
+  color: #e53e3e;
+  font-weight: bold;
+  margin-right: 6px;
 }

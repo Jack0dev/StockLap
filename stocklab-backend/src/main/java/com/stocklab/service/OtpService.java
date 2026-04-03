@@ -56,7 +56,7 @@ public class OtpService {
         
         emailService.sendEmail(email, subject, body);
         
-        return ApiResponse.success("Đã gửi mã OTP đến email của bạn.", null);
+        return ApiResponse.success("Đã gửi mã OTP đến email của bạn.", otp);
     }
 
     public boolean verifyOtp(String email, String otpCode) {

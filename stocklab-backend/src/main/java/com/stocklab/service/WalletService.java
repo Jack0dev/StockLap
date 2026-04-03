@@ -112,46 +112,24 @@ public class WalletService {
         return ApiResponse.success("Rút tiền thành công! Mã giao dịch: " + txCode, toResponse(savedTx));
     }
 
+    /**
+     * Hoàn tất giao dịch nạp tiền sau khi VNPay IPN xác nhận thành công.
+     */
     @Transactional
-    public ApiResponse<String> processMockWebhook(com.stocklab.dto.MockWebhookRequest request) {
-        String desc = request.getDescription() != null ? request.getDescription().toUpperCase() : "";
-        String targetTxCode = null;
-        
-        // Trích xuất mã giao dịch SL-XXXXXX (có dấu gạch ngang HOẶC không dấu gạch ngang cũng chấp nhận)
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("(SL-?[A-Z0-9]{6})");
-        java.util.regex.Matcher matcher = pattern.matcher(desc);
-        
-        if (matcher.find()) {
-            targetTxCode = matcher.group(1).replace("-", ""); // Normalize về dạng sát SLXXXXXX nếu trùng
-            // Phục hồi lại dấu gạch ngang vì lúc tạo mình dùng SLXXXXXX hoặc SL-XXXXXX
-            // Wait, lúc nãy mình sinh là "SL" + randomCode. Ví dụ "SL1A2B3C" (8 ký tự).
-            // Format nãy là: SL + 6 ký tự. Total = 8 chars.
-            targetTxCode = matcher.group(1); 
-        }
-        
-        if (targetTxCode == null) {
-            return ApiResponse.error("Không tìm thấy cú pháp Mã giao dịch (Cần chứa SLxxxxxx) trong nội dung CK");
+    public void completeDeposit(String txnRef, String vnpayTransactionNo) {
+        WalletTransaction tx = walletTransactionRepository.findByTransactionCode(txnRef).orElse(null);
+        if (tx == null || tx.getStatus() != WalletTransactionStatus.PENDING) {
+            return;
         }
 
-        WalletTransaction targetTx = walletTransactionRepository.findByTransactionCode(targetTxCode).orElse(null);
-        
-        if (targetTx == null || targetTx.getStatus() != WalletTransactionStatus.PENDING || targetTx.getType() != WalletTransactionType.DEPOSIT) {
-             return ApiResponse.error("Không tìm thấy lệnh Nạp Tiền PENDING nào khớp với mã: " + targetTxCode);
-        }
-        
-        User user = targetTx.getUser();
-        
-        if (targetTx != null) {
-            targetTx.setStatus(WalletTransactionStatus.COMPLETED);
-            targetTx.setNote("Khớp lệnh Webhook Tự động. Mã GD: " + request.getTransactionId());
-            walletTransactionRepository.save(targetTx);
-        }
+        tx.setStatus(WalletTransactionStatus.COMPLETED);
+        tx.setNote("Thanh toán VNPay thành công. Mã GD VNPay: " + vnpayTransactionNo);
+        walletTransactionRepository.save(tx);
 
-        // BƠM TIỀN CHO USER
-        user.setBalance(user.getBalance().add(targetTx.getAmount()));
+        // Cộng tiền cho user
+        User user = tx.getUser();
+        user.setBalance(user.getBalance().add(tx.getAmount()));
         userRepository.save(user);
-
-        return ApiResponse.success("Bơm tiền thành công rực rỡ cho mã đơn: " + targetTxCode, null);
     }
 
     public ApiResponse<String> sendWithdrawOtp(String username) {

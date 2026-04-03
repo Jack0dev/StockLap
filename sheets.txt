@@ -1,1 +1,0 @@
-['requiment', 'test-plan', 'test-design', 'Test Case', 'test-defect', 'Report']

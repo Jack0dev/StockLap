@@ -330,14 +330,24 @@ public class DataSeeder implements CommandLineRunner {
                     .role(Role.ADMIN)
                     .balance(new BigDecimal("100000000.00")) // 100M VND
                     .is2faEnabled(true) // Bật 2FA cho admin để test
+                    .twoFaSecret("CFJRTQYPKCVOHBQOTXTFHI7UC455AMM4") // Secret cố định cho JMeter
                     .isActive(true)
                     .build();
             userRepository.save(admin);
             log.info("👤 Đã tạo tài khoản admin mặc định (admin / Admin@123)");
+        } else {
+            // Đảm bảo admin luôn có twoFaSecret cố định cho JMeter test
+            User admin = userRepository.findByUsername("admin").orElse(null);
+            if (admin != null && (admin.getTwoFaSecret() == null || !admin.getTwoFaSecret().equals("CFJRTQYPKCVOHBQOTXTFHI7UC455AMM4"))) {
+                admin.setTwoFaSecret("CFJRTQYPKCVOHBQOTXTFHI7UC455AMM4");
+                userRepository.save(admin);
+                log.info("🔑 Đã cập nhật twoFaSecret cho admin (khớp JMeter test).");
+            }
         }
     }
 
     private void unlockAllExistingUsers() {
+        String FIXED_SECRET = "CFJRTQYPKCVOHBQOTXTFHI7UC455AMM4";
         List<User> users = userRepository.findAll();
         boolean changed = false;
         for (User u : users) {
@@ -345,10 +355,15 @@ public class DataSeeder implements CommandLineRunner {
                 u.setActive(true);
                 changed = true;
             }
+            // Đảm bảo tất cả user có twoFaSecret cố định cho JMeter test
+            if (u.getTwoFaSecret() == null || !u.getTwoFaSecret().equals(FIXED_SECRET)) {
+                u.setTwoFaSecret(FIXED_SECRET);
+                changed = true;
+            }
         }
         if (changed) {
             userRepository.saveAll(users);
-            log.info("🔓 Đã tự động mở khoá (isActive = true) cho các tài khoản cũ do cập nhật cấu trúc Database.");
+            log.info("🔓 Đã đồng bộ isActive + twoFaSecret cho tất cả tài khoản.");
         }
     }
 

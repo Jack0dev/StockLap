@@ -39,6 +39,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/stocks/**").permitAll()
                         .requestMatchers("/api/orders/book/**").permitAll()
                         .requestMatchers("/api/webhook/**").permitAll()
+                        .requestMatchers("/api/vnpay/ipn", "/api/vnpay/return").permitAll()
                         .requestMatchers("/api/bot/**").permitAll()
                         .requestMatchers("/api/platform-token/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()

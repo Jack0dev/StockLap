@@ -59,10 +59,10 @@ public class OrderService {
                     .error("Kiểu lệnh không hợp lệ: " + request.getOrderType() + ". Chỉ chấp nhận MARKET hoặc LIMIT");
         }
 
-        // 4. XÁC THỰC OTP CHO LỆNH BÁN (gửi qua email, bỏ qua cho bot)
-        if (side == OrderSide.SELL && !username.startsWith("bot_")) {
+        // 4. XÁC THỰC OTP CHO LỆNH MUA/BÁN (gửi qua email, bỏ qua cho bot)
+        if (!username.startsWith("bot_")) {
             if (request.getOtpCode() == null || request.getOtpCode().isBlank()) {
-                return ApiResponse.error("Lệnh BÁN yêu cầu mã OTP xác thực!");
+                return ApiResponse.error("Đặt lệnh yêu cầu mã OTP xác thực!");
             }
             if (!otpService.verifyOtp(user.getEmail(), request.getOtpCode())) {
                 return ApiResponse.error("Mã OTP không chính xác hoặc đã hết hạn!");
