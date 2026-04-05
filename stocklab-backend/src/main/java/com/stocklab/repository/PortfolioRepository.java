@@ -14,7 +14,10 @@ public interface PortfolioRepository extends JpaRepository<Portfolio, Long> {
 
     boolean existsByUserId(Long userId);
 
-    Optional<Portfolio> findByUserIdAndStockId(Long userId, Long stockId);
+    @org.springframework.data.jpa.repository.Query("SELECT p FROM Portfolio p WHERE p.user.id = :userId AND p.stock.id = :stockId")
+    Optional<Portfolio> findByUserIdAndStockId(@org.springframework.data.repository.query.Param("userId") Long userId, @org.springframework.data.repository.query.Param("stockId") Long stockId);
 
     Optional<Portfolio> findByUserIdAndStockTicker(Long userId, String ticker);
+
+    void deleteByStockId(Long stockId);
 }

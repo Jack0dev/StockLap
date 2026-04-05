@@ -85,10 +85,11 @@
 - [ ] **BOT-1** Bot User (seed)
 - [ ] **BOT-2** Auto Place Orders
 - [ ] **BOT-3** Cấu hình Bot (admin toggle)
+- [x] **BOT-FIX** Optimize Database queries for Trading Bot (N+1 Issue)
 
 ---
 
-## ❌ Module 7 — Admin (4/6)
+## ✅ Module 7 — Admin (7/7)
 
 - [x] **ADM-1** Phân quyền Admin
 - [x] **ADM-2** Quản lý Users
@@ -96,6 +97,7 @@
 - [x] **ADM-4** Dashboard thống kê
 - [x] **ADM-5** Quản lý lệnh
 - [x] **ADM-6** Admin Navigation & Routing
+- [x] **ADM-7** Ghi log hoạt động Admin (Audit Log)
 
 ---
 
@@ -116,4 +118,4 @@
 
 ---
 
-> **Tổng: 33 đã xong / 35 cần làm = 68 task**
+> **Tổng: 34 đã xong / 35 cần làm = 69 task**

@@ -216,6 +216,17 @@ config/DataSeeder.java           [MODIFY] — thêm bot user
 | ADM-3 | **Quản lý Stocks** | CRUD stocks, khoá/mở, xoá cứng/mềm, pagination/filter/sort | Bảng stocks nâng cao, modals | ✅ |
 | ADM-4 | **Dashboard thống kê** | Tổng user, tổng GD, tổng KL, top CP, doanh thu | Dashboard cards + charts | ✅ |
 | ADM-5 | **Quản lý lệnh** | Xem tất cả lệnh, force cancel, xem order book | Bảng lệnh toàn hệ thống | ❌ |
+| ADM-7 | **Ghi log hoạt động (Audit Log)** | `AuditLog` entity (lưu action, target, user, value), Ghi nhật ký qua AOP/Service, API Get Logs | Trang `AdminLogsPage.jsx` hiển thị bảng log, Cập nhật Admin Sidebar | ❌ |
+
+#### Files cần tạo:
+```
+model/AuditLog.java               [NEW]
+repository/AuditLogRepository.java[NEW]
+service/AuditLogService.java      [NEW]
+controller/AuditLogController.java[NEW]
+pages/AdminLogsPage.jsx + .css    [NEW]
+components/AdminLayout.jsx        [MODIFY] - Thêm link Sidebar
+```
 
 ---
 
@@ -263,6 +274,6 @@ Bước 8: Module 8 (DevOps)                      → triển khai
 | Module 4 — Matching Engine | 0 | 6 |
 | Module 5 — WebSocket | 0 | 5 |
 | Module 6 — Trading Bot | 0 | 3 |
-| Module 7 — Admin | **4** | 5 |
+| Module 7 — Admin | **4** | 6 |
 | Module 8 — DevOps | 0 | 6 |
-| **Tổng** | **31** | **68** |
+| **Tổng** | **31** | **69** |

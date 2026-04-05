@@ -27,4 +27,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     @Query("SELECT new com.stocklab.dto.TopStockDto(t.stock.ticker, SUM(t.quantity)) FROM Transaction t GROUP BY t.stock.ticker ORDER BY SUM(t.quantity) DESC")
     List<TopStockDto> getTopStocksByVolume(Pageable pageable);
+
+    void deleteByStockId(Long stockId);
 }

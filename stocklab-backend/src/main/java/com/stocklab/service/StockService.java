@@ -5,6 +5,11 @@ import com.stocklab.model.Stock;
 import com.stocklab.model.StockPriceHistory;
 import com.stocklab.repository.StockPriceHistoryRepository;
 import com.stocklab.repository.StockRepository;
+import com.stocklab.repository.TransactionRepository;
+import com.stocklab.repository.OrderRepository;
+import com.stocklab.repository.ConditionalOrderRepository;
+import com.stocklab.repository.PortfolioRepository;
+import com.stocklab.repository.WatchlistRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +26,11 @@ public class StockService {
 
     private final StockRepository stockRepository;
     private final StockPriceHistoryRepository priceHistoryRepository;
+    private final TransactionRepository transactionRepository;
+    private final OrderRepository orderRepository;
+    private final ConditionalOrderRepository conditionalOrderRepository;
+    private final PortfolioRepository portfolioRepository;
+    private final WatchlistRepository watchlistRepository;
 
     /**
      * Lấy danh sách cổ phiếu có phân trang
@@ -160,6 +170,13 @@ public class StockService {
          Stock stock = stockRepository.findById(id).orElse(null);
          if (stock == null) return ApiResponse.error("Không tìm thấy cổ phiếu!");
          try {
+             transactionRepository.deleteByStockId(id);
+             conditionalOrderRepository.deleteByStockId(id);
+             orderRepository.deleteByStockId(id);
+             portfolioRepository.deleteByStockId(id);
+             watchlistRepository.deleteByStockId(id);
+             priceHistoryRepository.deleteByStockId(id);
+
              stockRepository.delete(stock);
              stockRepository.flush(); // Bắt buộc lưu ngay xuống DB để tóm lỗi Foreign Key
              return ApiResponse.success("Xóa vĩnh viễn mã cổ phiếu " + stock.getTicker() + " thành công!");

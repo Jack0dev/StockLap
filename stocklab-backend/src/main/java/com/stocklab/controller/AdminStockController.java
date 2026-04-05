@@ -11,7 +11,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import com.stocklab.service.AuditLogService;
+import com.stocklab.model.ActionType;
 
 @RestController
 @RequestMapping("/api/admin/stocks")
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminStockController {
 
     private final StockService stockService;
+    private final AuditLogService auditLogService;
 
     @GetMapping
     public ApiResponse<Page<StockResponse>> getAllStocks(
@@ -37,23 +41,39 @@ public class AdminStockController {
 
     @PostMapping
     public ApiResponse<StockResponse> createStock(@Valid @RequestBody CreateStockRequest request) {
-        return stockService.createStock(request);
+        ApiResponse<StockResponse> res = stockService.createStock(request);
+        if (res.isSuccess()) {
+            auditLogService.logAction(SecurityContextHolder.getContext().getAuthentication().getName(), ActionType.CREATE, "Stock", request.getTicker(), "Tạo cổ phiếu mới");
+        }
+        return res;
     }
 
     @PutMapping("/{id}")
     public ApiResponse<StockResponse> updateStock(
             @PathVariable Long id, 
             @Valid @RequestBody CreateStockRequest request) {
-        return stockService.updateStock(id, request);
+        ApiResponse<StockResponse> res = stockService.updateStock(id, request);
+        if (res.isSuccess()) {
+            auditLogService.logAction(SecurityContextHolder.getContext().getAuthentication().getName(), ActionType.UPDATE, "Stock", String.valueOf(id), "Cập nhật cổ phiếu " + request.getTicker());
+        }
+        return res;
     }
     
     @PutMapping("/{id}/toggle-status")
     public ApiResponse<String> toggleStockStatus(@PathVariable Long id) {
-        return stockService.toggleStockStatus(id);
+        ApiResponse<String> res = stockService.toggleStockStatus(id);
+        if (res.isSuccess()) {
+            auditLogService.logAction(SecurityContextHolder.getContext().getAuthentication().getName(), ActionType.STATUS_CHANGE, "Stock", String.valueOf(id), res.getMessage());
+        }
+        return res;
     }
 
     @DeleteMapping("/{id}")
     public ApiResponse<String> deleteStock(@PathVariable Long id) {
-        return stockService.deleteStock(id);
+        ApiResponse<String> res = stockService.deleteStock(id);
+        if (res.isSuccess()) {
+            auditLogService.logAction(SecurityContextHolder.getContext().getAuthentication().getName(), ActionType.DELETE, "Stock", String.valueOf(id), "Xóa cổ phiếu");
+        }
+        return res;
     }
 }

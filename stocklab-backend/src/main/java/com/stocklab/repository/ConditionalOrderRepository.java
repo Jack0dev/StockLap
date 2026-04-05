@@ -26,4 +26,6 @@ public interface ConditionalOrderRepository extends JpaRepository<ConditionalOrd
     // Lấy lệnh ACTIVE đã hết hạn
     List<ConditionalOrder> findByStatusAndExpiryDateBefore(
             ConditionalOrderStatus status, LocalDateTime now);
+
+    void deleteByStockId(Long stockId);
 }

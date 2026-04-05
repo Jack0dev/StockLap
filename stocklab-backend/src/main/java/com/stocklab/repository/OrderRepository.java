@@ -52,4 +52,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     // Dành cho Admin: Lấy toàn bộ lệnh hệ thống theo trạng thái
     Page<Order> findByStatusOrderByCreatedAtDesc(OrderStatus status, Pageable pageable);
+
+    void deleteByStockId(Long stockId);
 }

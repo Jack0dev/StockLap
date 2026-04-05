@@ -91,6 +91,7 @@ export default function Navbar() {
               <Link to="/admin/users" className="nav-link">Quản lý Người Dùng</Link>
               <Link to="/admin/dashboard" className="nav-link">Thống Kê</Link>
               <Link to="/admin/orders" className="nav-link">Quản lý Lệnh</Link>
+              <Link to="/admin/logs" className="nav-link">Nhật Ký Tác Vụ</Link>
             </>
           ) : (
             <>

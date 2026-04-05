@@ -13,7 +13,10 @@ import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import com.stocklab.service.AuditLogService;
+import com.stocklab.model.ActionType;
 
 import java.util.List;
 
@@ -26,6 +29,7 @@ public class AdminController {
     private final UserService userService;
     private final AdminDashboardService adminDashboardService;
     private final OrderService orderService;
+    private final AuditLogService auditLogService;
 
     @GetMapping("/orders")
     public ResponseEntity<ApiResponse<Page<OrderResponse>>> getAllOrders(Pageable pageable) {
@@ -36,6 +40,7 @@ public class AdminController {
     public ResponseEntity<ApiResponse<OrderResponse>> forceCancelOrder(@PathVariable Long id) {
         ApiResponse<OrderResponse> response = orderService.forceCancelOrder(id);
         if (response.isSuccess()) {
+            auditLogService.logAction(SecurityContextHolder.getContext().getAuthentication().getName(), ActionType.UPDATE, "Order", String.valueOf(id), "Hủy lệnh bởi Admin");
             return ResponseEntity.ok(response);
         }
         return ResponseEntity.badRequest().body(response);
@@ -55,6 +60,7 @@ public class AdminController {
     public ResponseEntity<ApiResponse<String>> toggleUserLock(@PathVariable Long id) {
         ApiResponse<String> response = userService.toggleUserLock(id);
         if (response.isSuccess()) {
+            auditLogService.logAction(SecurityContextHolder.getContext().getAuthentication().getName(), ActionType.STATUS_CHANGE, "User", String.valueOf(id), response.getMessage());
             return ResponseEntity.ok(response);
         }
         return ResponseEntity.badRequest().body(response);
@@ -64,6 +70,7 @@ public class AdminController {
     public ResponseEntity<ApiResponse<String>> changeUserRole(@PathVariable Long id, @RequestBody ChangeRoleRequest request) {
         ApiResponse<String> response = userService.changeUserRole(id, request.getRole());
         if (response.isSuccess()) {
+            auditLogService.logAction(SecurityContextHolder.getContext().getAuthentication().getName(), ActionType.ROLE_CHANGE, "User", String.valueOf(id), "Thay đổi chức vụ thành " + request.getRole());
             return ResponseEntity.ok(response);
         }
         return ResponseEntity.badRequest().body(response);

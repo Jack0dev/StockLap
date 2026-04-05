@@ -154,4 +154,9 @@ export const adminOrderAPI = {
   forceCancelOrder: (id) => api.put(`/admin/orders/${id}/cancel`),
 };
 
+// ===== Admin Log APIs =====
+export const adminAuditLogAPI = {
+  getLogs: (params) => api.get('/admin/logs', { params }),
+};
+
 export default api;
