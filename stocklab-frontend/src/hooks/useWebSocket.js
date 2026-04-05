@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client/dist/sockjs';
 
-const WS_URL = 'http://localhost:8080/ws';
+const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:8080/ws';
 
 /**
  * Custom hook để kết nối WebSocket STOMP
