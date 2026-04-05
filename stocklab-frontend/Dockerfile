@@ -22,7 +22,7 @@ FROM nginx:alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy the built files from the previous stage
 COPY --from=build /app/dist /usr/share/nginx/html
-# Expose port 80
-EXPOSE 80
-# Start Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Expose port (Railway uses PORT env var, default 80)
+EXPOSE ${PORT:-80}
+# Start Nginx with dynamic port from Railway
+CMD sh -c "sed -i \"s/listen 80/listen \${PORT:-80}/\" /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
