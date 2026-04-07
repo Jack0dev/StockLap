@@ -198,6 +198,14 @@ public class VnPayController {
         }
 
         if ("00".equals(responseCode)) {
+            // Fallback: cập nhật giao dịch + cộng tiền tại đây
+            // (phòng trường hợp IPN không gọi được - VD: localhost, Docker, Sandbox)
+            try {
+                walletService.completeDeposit(txnRef, params.getOrDefault("vnp_TransactionNo", ""));
+                log.info("VNPay Return: Deposit completed for txnRef={}", txnRef);
+            } catch (Exception e) {
+                log.warn("VNPay Return: completeDeposit fallback error for txnRef={}: {}", txnRef, e.getMessage());
+            }
             return ApiResponse.success("Giao dịch thanh toán thành công!", result);
         } else {
             return ApiResponse.error("Giao dịch không thành công. Mã lỗi: " + responseCode);
