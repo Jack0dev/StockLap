@@ -9,9 +9,11 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 
-# Set production API URLs directly for Vite build
-ENV VITE_API_URL=https://prolific-abundance-production-d5b7.up.railway.app/api
-ENV VITE_WS_URL=https://prolific-abundance-production-d5b7.up.railway.app/ws
+# Get API URLs from build args (Railway injects them automatically during build workload)
+ARG VITE_API_URL=http://localhost:8080/api
+ARG VITE_WS_URL=http://localhost:8080/ws
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_WS_URL=${VITE_WS_URL}
 
 # Build the application (Vite reads ENV vars as import.meta.env.*)
 RUN npm run build
